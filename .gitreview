@@ -1,0 +1,4 @@
+[gerrit]
+host=review.hpnos.io
+port=29418
+project=halon/halonnet.git
