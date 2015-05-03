@@ -1,0 +1,4 @@
+temporary - to be replace by real INSTALL file
+
+run "setup.py build"
+run "setup.py install"
