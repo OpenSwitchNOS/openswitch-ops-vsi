@@ -27,8 +27,8 @@ class DockerNode( Node ):
         if self.shell:
             error( "%s: shell is already running" )
             return
-        
-        # Just in case test isn't running in a container, 
+
+        # Just in case test isn't running in a container,
         # clean up any mess left by previous run
         call(["docker rm -f "+self.name], stdout=PIPE, stderr=PIPE, shell=True)
 
@@ -37,7 +37,7 @@ class DockerNode( Node ):
         f.write("export PS1='\177'")
         f.close()
         cmd = ["mnexec", "-cd", "docker", "run","--privileged","-v","/tmp:/tmp","-h",
-               self.name ,"--name="+self.name, "-ti", "--net='none'",self.image, 
+               self.name ,"--name="+self.name, "-ti", "--net='none'",self.image,
                "/bin/bash", "--rcfile", "/tmp/" + bashrc_file_name]
 
         self.shell = Popen( cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True )
@@ -66,14 +66,14 @@ class DockerNode( Node ):
                     self.pid = pid
                     break
 
-        # Wait for prompt 
-        while True: 
-            data = self.read( 1024 ) 
-            if data[ -1 ] == chr( 127 ): 
-                break 
-            self.pollOut.poll() 
-        self.waiting = False 
-        # +m: disable job control notification 
+        # Wait for prompt
+        while True:
+            data = self.read( 1024 )
+            if data[ -1 ] == chr( 127 ):
+                break
+            self.pollOut.poll()
+        self.waiting = False
+        # +m: disable job control notification
         self.cmd( 'unset HISTFILE; stty -echo; set +m' )
 
 
@@ -88,13 +88,13 @@ class DockerLink( Link ):
                       node1=None, node2=None, deleteIntfs=True ):
         node1_netns = " netns " + str(node1.pid) if node1.inNamespace else " "
         node1_netns_exec = "ip netns exec " + str(node1.pid) if node1.inNamespace else ""
-            
+
         node2_netns = " netns " + str(node2.pid) if node2.inNamespace else " "
         node2_netns_exec = "ip netns exec " + str(node2.pid) if node2.inNamespace else ""
-       
+
         if deleteIntfs:
             call([node1_netns_exec + " ip link del " + intfname1], stdout=PIPE, shell=True)
             call([node2_netns_exec + " ip link del " + intfname2], stdout=PIPE, shell=True)
 
-        call(["ip link add " + node1_netns + " name " + intfname1 + " down " + 
+        call(["ip link add " + node1_netns + " name " + intfname1 + " down " +
               " type veth peer " + node2_netns + " name " + intfname2 + " down "], shell=True)

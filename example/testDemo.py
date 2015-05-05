@@ -1,16 +1,16 @@
 #!/usr/bin/python
 
-from mininet.net import * 
+from mininet.net import *
 from mininet.topo import *
 from mininet.node import *
 from mininet.link import *
 from mininet.cli import *
 from mininet.log import *
-from mininet.util import * 
+from mininet.util import *
 from subprocess import *
 from subprocess import *
-from halonnet.docker import * 
-from halonnet.halon import * 
+from halonnet.docker import *
+from halonnet.halon import *
 import select
 
 class demoTest( HalonTest ):
@@ -28,13 +28,13 @@ class demoTest( HalonTest ):
 
         info( '*** Running ping test between all hosts\n')
         ret = self.net.pingAll()
-        #return code means whether the test is successful 
+        #return code means whether the test is successful
         if ret > 0:
             return False
         else:
             return True
-             
+
 
 if __name__ == '__main__':
     test = demoTest()
-    test.run(runCLI=False) 
+    test.run(runCLI=False)
