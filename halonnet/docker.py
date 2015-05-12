@@ -36,9 +36,10 @@ class DockerNode( Node ):
         f = open("/tmp/" + bashrc_file_name, "w")
         f.write("export PS1='\177'")
         f.close()
-        cmd = ["mnexec", "-cd", "docker", "run","--privileged","-v","/tmp:/tmp","-h",
+
+        cmd = ["mnexec", "-cd", "script", "-q", "-f", "/dev/null", "-c", ' '.join(["docker", "run","--privileged","-v","/tmp:/tmp","-h",
                self.name ,"--name="+self.name, "-ti", "--net='none'",self.image,
-               "/bin/bash", "--rcfile", "/tmp/" + bashrc_file_name]
+               "/bin/bash", "--rcfile", "/tmp/" + bashrc_file_name])]
 
         self.shell = Popen( cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True )
         self.stdin = self.shell.stdin
