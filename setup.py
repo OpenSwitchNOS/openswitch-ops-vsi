@@ -9,7 +9,7 @@ from os.path import join
 import sys
 sys.path.append( '.' )
 
-VERSION = "2.2.1"
+VERSION = "0.0.1"
 
 modname = distname = 'halonnet'
 
