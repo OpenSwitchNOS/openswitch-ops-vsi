@@ -12,6 +12,8 @@ from subprocess import *
 from subprocess import *
 import select
 import re
+import argparse
+
 
 class HalonHost ( DockerHost ):
     def __init__( self, name, image = 'mzayats/halon-host', **kwargs ):
@@ -49,6 +51,10 @@ class HalonSwitch ( DockerNode, Switch ):
 
 class HalonTest:
     def __init__(self):
+        parser = argparse.ArgumentParser()
+        self.regArgs(parser)
+        args = parser.parse_args()
+        self.procArgs(args)
         self.setLogLevel()
         self.setupNet()
 
@@ -57,17 +63,27 @@ class HalonTest:
 
     def setupNet(self):
         self.net = Mininet( topo=SingleSwitchTopo(k=2), switch=HalonSwitch,
-                            host=HalonHost, link=HalonLink, build=True )
+                            host=HalonHost, link=HalonLink, controller=None,
+                            build=True )
+    def regArgs(self, parser):
+        parser.add_argument("--id", 
+            help="Specify numeric test ID, default is process ID", type=int)
+
+    def procArgs(self, args):
+        if args.id:
+            self.id=args.id
+        else:
+            self.id=os.getpid()
 
     def error(self):
-        error('===============================================\n')
-        error('===                 ERROR                   ===\n')
-        error('===============================================\n')
+        error('=====\n')
+        error('=====  ERROR: test outputs can be found in ' + '/tmp/halontests/' + str(self.id) + ' =====\n')
+        error('=====\n')
 
     def success(self):
-        info('===============================================\n')
-        info('===               SUCCESS                   ===\n')
-        info('===============================================\n')
+        info('=====\n') 
+        info('=====  SUCCESS: test outputs can be found in ' + '/tmp/halontests/' + str(self.id) + ' =====\n')
+        info('=====\n') 
 
     def run(self, runCLI=False):
         self.net.start()

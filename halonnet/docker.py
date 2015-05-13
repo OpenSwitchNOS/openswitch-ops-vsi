@@ -8,19 +8,21 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 import select
+import os
 
 class DockerNode( Node ):
     def __init__( self, name, image='ubuntu', **kwargs ):
         self.image = image
+        self.cont_name = str(os.getpid()) + "_" + name
         super(DockerNode, self).__init__( name, **kwargs )
 
     def popen( self, *args, **kwargs ):
-        return Node.popen( self, *args, mncmd = [ 'docker', 'exec', self.name ],
+        return Node.popen( self, *args, mncmd = [ 'docker', 'exec', self.cont_name ],
                            **kwargs )
 
     def terminate( self ):
         if self.shell:
-            call(["docker rm -f "+self.name], shell = True)
+            call(["docker rm -f "+self.cont_name], stdout=PIPE, stderr=PIPE, shell = True)
             self.cleanup()
 
     def startShell( self ):
@@ -30,15 +32,16 @@ class DockerNode( Node ):
 
         # Just in case test isn't running in a container,
         # clean up any mess left by previous run
-        call(["docker rm -f "+self.name], stdout=PIPE, stderr=PIPE, shell=True)
+        call(["docker rm -f "+self.cont_name], stdout=PIPE, stderr=PIPE, shell=True)
 
         bashrc_file_name = "mininet_bash_rc"
         f = open("/tmp/" + bashrc_file_name, "w")
         f.write("export PS1='\177'")
         f.close()
 
-        cmd = ["mnexec", "-cd", "script", "-q", "-f", "/dev/null", "-c", ' '.join(["docker", "run","--privileged","-v","/tmp:/tmp","-h",
-               self.name ,"--name="+self.name, "-ti", "--net='none'",self.image,
+        cmd = ["mnexec", "-cd", "script", "-q", "-f", "/dev/null", "-c", ' '.join(["docker", "run",
+               "--privileged","-v","/tmp:/tmp","-h", self.cont_name ,"--name="+self.cont_name, 
+               "--rm", "-ti", "--net='none'",self.image,
                "/bin/bash", "--rcfile", "/tmp/" + bashrc_file_name])]
 
         self.shell = Popen( cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True )
@@ -57,7 +60,7 @@ class DockerNode( Node ):
 
         # Wait until container actually starts and grab it's PID
         while True:
-            pid_cmd = ["docker","inspect","--format='{{ .State.Pid }}'",self.name]
+            pid_cmd = ["docker","inspect","--format='{{ .State.Pid }}'",self.cont_name]
             pidp = Popen( pid_cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=False )
             ps_out = pidp.stdout.readlines()
             pidp.wait()
