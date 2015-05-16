@@ -5,6 +5,7 @@ clean:
 
 test: 
 	time -p tests/simple-topo-pingall/test.py
+	cd tests/passing-files-into-switch-container; time -p ./test.py
 
 build: 
 	python setup.py build

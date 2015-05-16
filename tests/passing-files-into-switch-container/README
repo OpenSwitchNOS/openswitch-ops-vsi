@@ -1,0 +1,4 @@
+test.py is the real entry point of this test
+
+test-under-test is a test that is being asked to mount printme.sh
+into the switch and check its output

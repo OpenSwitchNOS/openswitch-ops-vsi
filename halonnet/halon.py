@@ -74,14 +74,24 @@ class HalonTest:
     def getNodeOpts(self):
         return {'testid': self.id, 'testdir': self.testdir}
 
+    def getHostOpts(self):
+        opts = self.getNodeOpts()
+        opts.update({'mounts':self.hostmounts})
+        return opts 
+
+    def getSwitchOpts(self):
+        opts = self.getNodeOpts()
+        opts.update({'mounts':self.switchmounts})
+        return opts 
+
     def setupNet(self):
         # if you override this function, make sure to
         # either pass getNodeOpts() into hopts/sopts of the topology that
         # you build or into addHost/addSwitch calls
         self.net = Mininet(topo=SingleSwitchTopo(
             k=2,
-            hopts=self.getNodeOpts(),
-            sopts=self.getNodeOpts()),
+            hopts=self.getHostOpts(),
+            sopts=self.getSwitchOpts()),
             switch=HalonSwitch,
             host=HalonHost,
             link=HalonLink, controller=None,
@@ -89,15 +99,25 @@ class HalonTest:
 
     def regArgs(self, parser):
         parser.add_argument(
-            "--id",
+            "-i", "--id", default=os.getpid(),
             help="Specify numeric test ID, default is process ID", type=int)
+        parser.add_argument(
+            "--sm", "--switchmount", action="append", dest="switchmounts",
+            default=[], metavar="localpath:switchpath",
+            help="mount local file or directory into the \
+                  specified path in all the switches")
+        parser.add_argument(
+            "--hm", "--hostmount", action="append", dest="hostmounts",
+            default=[], metavar="localpath:hostpath",
+            help="mount local file or directory into the \
+                  specified path in all the hosts")
+
 
     def procArgs(self, args):
-        if args.id:
-            self.id = str(args.id)
-        else:
-            self.id = str(os.getpid())
-
+        self.id = str(args.id)
+        self.switchmounts = args.switchmounts
+        self.hostmounts = args.hostmounts
+    
     def error(self):
         error('=====\n')
         error('===== ERROR: test outputs can be found in ' +

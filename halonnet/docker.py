@@ -21,9 +21,12 @@ class DockerNode(Node):
         self.nodedir = self.testdir + '/' + name
         os.makedirs(self.nodedir)
 
+
         self.shareddir = self.nodedir + '/shared'
         os.makedirs(self.shareddir)
 
+        self.mounts = kwargs.pop('mounts', [])
+        
         super(DockerNode, self).__init__(name, **kwargs)
 
     def popen(self, *args, **kwargs):
@@ -52,11 +55,17 @@ class DockerNode(Node):
         f.write("export PS1='\177'")
         f.close()
 
+        mountParams = []
+        for mount in self.mounts:
+            mountParams += ["-v", mount]
+        
         cmd = [
             "mnexec", "-cd", "script",
             "-c", ' '.join(
                 ["docker", "run", "--privileged", "-v",
-                 self.shareddir + ":/tmp", "-h", self.container_name,
+                 self.shareddir + ":/tmp"] + 
+                 mountParams + 
+                 ["-h", self.container_name,
                  "--name="+self.container_name, "--rm", "-ti", "--net='none'",
                  self.image, "/bin/bash", "--rcfile",
                  "/tmp/" + bashrc_file_name]),
