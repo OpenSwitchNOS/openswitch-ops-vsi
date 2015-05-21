@@ -17,7 +17,7 @@ import os
 
 
 class HalonHost (DockerHost):
-    def __init__(self, name, image='mzayats/halon-host', **kwargs):
+    def __init__(self, name, image='halon/halon-host', **kwargs):
         super(HalonHost, self).__init__(name, image, **kwargs)
 
 
@@ -30,7 +30,7 @@ class HalonLink(DockerLink):
 
 
 class HalonSwitch (DockerNode, Switch):
-    def __init__(self, name, image='mzayats/dockered-ovs',
+    def __init__(self, name, image='halon/dockered-ovs',
                  numPorts=8, **kwargs):
         super(HalonSwitch, self).__init__(name, image, **kwargs)
         self.inNamespace = True
