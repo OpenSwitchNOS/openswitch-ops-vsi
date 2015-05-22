@@ -7,21 +7,19 @@ from os.path import join
 
 # Get version number from source tree
 import sys
-sys.path.append( '.' )
+sys.path.append('.')
 
-VERSION = "0.0.1"
+VERSION = "1.0.0"
 
-modname = distname = 'halonnet'
+modname = distname = 'halonvsi'
 
 setup(
     name=distname,
     version=VERSION,
-    description='Halon emulator based on Mininet',
-    author='Michael Zayats',
-    author_email='michael.zayats@hp.com',
-    packages=[ 'halonnet' ],
+    description='Halon test/development infrastructure based on Mininet',
+    packages=[ modname ],
     long_description="""
-        Halonnet is an emulation platform to be used both during
+        HalonVSI is an emulation platform to be used both during
         the development and testing of OpenHalon
         """,
     classifiers=[
@@ -31,7 +29,6 @@ setup(
           "Intended Audience :: Developers",
           "Topic :: System :: Emulators",
     ],
-    keywords='networking emulator protocol Internet OpenFlow SDN',
     license='Apache Software License',
     install_requires=[
         'setuptools',

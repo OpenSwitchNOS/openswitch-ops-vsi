@@ -17,7 +17,7 @@ import os
 
 
 class HalonHost (DockerHost):
-    def __init__(self, name, image='halon/halon-host', **kwargs):
+    def __init__(self, name, image='ubuntu:latest', **kwargs):
         super(HalonHost, self).__init__(name, image, **kwargs)
 
 
@@ -30,26 +30,16 @@ class HalonLink(DockerLink):
 
 
 class HalonSwitch (DockerNode, Switch):
-    def __init__(self, name, image='halon/dockered-ovs',
-                 numPorts=8, **kwargs):
+    def __init__(self, name, image='openhalon/as5712',
+                 numPorts=5, **kwargs):
         super(HalonSwitch, self).__init__(name, image, **kwargs)
         self.inNamespace = True
         self.numPorts = numPorts
 
     def start(self, controllers):
-        self.cmd("ip netns add swns")
         for i in range(1, self.numPorts + 1):
             if str(i) not in self.nameToIntf:
-                self.cmd("ip netns exec swns ip tuntap add dev "
-                         + str(i) + " mode tap")
-            else:
-                self.cmd("ip link set dev " + str(i) + " netns swns up")
-        self.cmd("ovsdb-tool create")
-        self.cmd("ovsdb-server --remote=punix:/usr/local/var/" +
-                 "run/openvswitch/db.sock --detach")
-        self.cmd("ip netns exec swns ovs-vswitchd --detach")
-        self.cmd("ovs-vsctl add-br br0")
-        self.cmd("ovs-vsctl set bridge br0 datapath_type=netdev")
+                self.cmd("ip tuntap add dev " + str(i) + " mode tap")
 
     def startShell(self):
         DockerNode.startShell(self)
@@ -83,12 +73,12 @@ class HalonTest:
     def getHostOpts(self):
         opts = self.getNodeOpts()
         opts.update({'mounts':self.hostmounts})
-        return opts 
+        return opts
 
     def getSwitchOpts(self):
         opts = self.getNodeOpts()
         opts.update({'mounts':self.switchmounts})
-        return opts 
+        return opts
 
     def setupNet(self):
         # if you override this function, make sure to
@@ -123,7 +113,7 @@ class HalonTest:
         self.id = str(args.id)
         self.switchmounts = args.switchmounts
         self.hostmounts = args.hostmounts
-    
+
     def error(self):
         error('=====\n')
         error('===== ERROR: test outputs can be found in ' +

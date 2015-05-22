@@ -21,12 +21,44 @@ class DockerNode(Node):
         self.nodedir = self.testdir + '/' + name
         os.makedirs(self.nodedir)
 
-
         self.shareddir = self.nodedir + '/shared'
         os.makedirs(self.shareddir)
 
         self.mounts = kwargs.pop('mounts', [])
-        
+
+        # Just in case test isn't running in a container,
+        # clean up any mess left by previous run
+        call( [ "docker rm -f " + self.container_name ], stdout=PIPE,
+                stderr=PIPE, shell=True)
+
+        mountParams = []
+        for mount in self.mounts:
+            mountParams += ["-v", mount]
+
+        cmd = ["docker", "run", "--privileged", "-v", self.shareddir + ":/tmp"] + \
+              mountParams + \
+              ["-h", self.container_name, "--name=" + self.container_name,
+               "-d", self.image, "/sbin/init"]
+
+        Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+
+        # Wait until container actually starts and grab it's PID
+        while True:
+            pid_cmd = [ "docker", "inspect", "--format='{{ .State.Pid }}'",
+                        self.container_name]
+            pidp = Popen(pid_cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
+                         close_fds=False)
+            ps_out = pidp.stdout.readlines()
+            pidp.wait()
+            if pidp.returncode == 0:
+                pid = int(ps_out[0])
+                if pid != 0:
+                    self.docker_pid = pid
+                    debug("Docker container started.\n")
+                    debug(" Name=" + self.container_name);
+                    debug(" PID=", self.docker_pid);
+                    break
+
         super(DockerNode, self).__init__(name, **kwargs)
 
     def popen(self, *args, **kwargs):
@@ -45,39 +77,22 @@ class DockerNode(Node):
             error("%s: shell is already running")
             return
 
-        # Just in case test isn't running in a container,
-        # clean up any mess left by previous run
-        call(["docker rm -f "+self.container_name], stdout=PIPE,
-             stderr=PIPE, shell=True)
-
         bashrc_file_name = "mininet_bash_rc"
         f = open(self.shareddir + '/' + bashrc_file_name, "w")
         f.write("export PS1='\177'")
         f.close()
 
-        mountParams = []
-        for mount in self.mounts:
-            mountParams += ["-v", mount]
-        
-        cmd = [
-            "mnexec", "-cd", "script",
-            "-c", ' '.join(
-                ["docker", "run", "--privileged", "-v",
-                 self.shareddir + ":/tmp"] + 
-                 mountParams + 
-                 ["-h", self.container_name,
-                 "--name="+self.container_name, "--rm", "-ti",
-                 self.image, "/bin/bash", "--rcfile",
-                 "/tmp/" + bashrc_file_name]),
-            "--timing=" + self.nodedir + "/transcript.timing",
-            "-q", "-f",
-            self.nodedir + "/transcript"]
+        cmd = [ "mnexec", "-cd", "script", "-c",
+                    ' '.join( [ "docker", "exec", "-ti", self.container_name,
+                                "/bin/bash", "--rcfile", "/tmp/" + bashrc_file_name]),
+                    "--timing=" + self.nodedir + "/transcript.timing",
+                    "-q", "-f", self.nodedir + "/transcript"]
 
         self.shell = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                            close_fds=True)
         self.stdin = self.shell.stdin
         self.stdout = self.shell.stdout
-        self.pid = self.shell.pid
+        self.pid = self.docker_pid
         self.pollOut = select.poll()
         self.pollOut.register(self.stdout)
         self.outToNode[self.stdout.fileno()] = self
@@ -87,20 +102,6 @@ class DockerNode(Node):
         self.lastPid = None
         self.readbuf = ''
         self.waiting = False
-
-        # Wait until container actually starts and grab it's PID
-        while True:
-            pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
-                       self.container_name]
-            pidp = Popen(pid_cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
-                         close_fds=False)
-            ps_out = pidp.stdout.readlines()
-            pidp.wait()
-            if pidp.returncode == 0:
-                pid = int(ps_out[0])
-                if pid != 0:
-                    self.pid = pid
-                    break
 
         # Wait for prompt
         while True:
@@ -123,6 +124,7 @@ class DockerLink(Link):
 
     def makeIntfPair(cls, intfname1, intfname2, addr1=None, addr2=None,
                      node1=None, node2=None, deleteIntfs=True):
+
         node1_netns = " netns " + str(node1.pid) if node1.inNamespace else " "
         node1_netns_exec = "ip netns exec " + \
                            str(node1.pid) if node1.inNamespace else ""

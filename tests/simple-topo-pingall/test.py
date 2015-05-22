@@ -9,30 +9,50 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 from subprocess import *
-from halonnet.docker import *
-from halonnet.halon import *
+from halonvsi.docker import *
+from halonvsi.halon import *
 import select
 
 class demoTest( HalonTest ):
+
+    @staticmethod
+    def _parsePing( pingOutput ):
+        "Parse ping output and return packets sent, received."
+        # Check for downed link
+        if 'connect: Network is unreachable' in pingOutput:
+            return (1, 0)
+        r = r'(\d+) packets transmitted, (\d+) received'
+        m = re.search( r, pingOutput )
+        if m is None:
+            error( '*** Error: could not parse ping output: %s\n' %
+                   pingOutput )
+            return (1, 0)
+        sent, received = int( m.group( 1 ) ), int( m.group( 2 ) )
+        return sent, received
+
     def test(self):
         s1 = self.net.switches[ 0 ]
+        h1 = self.net.hosts[ 0 ]
 
-        info( 'Bridging ports 1 and 2\n')
         #configuring Halon, in the future it would be through
         #proper Halon commands
-        s1.cmd("ovs-vsctl add-port br0 1 -- add-port br0 2")
-        s1.cmd("ip netns exec swns iptables -A INPUT -i 1 -j DROP")
-        s1.cmd("ip netns exec swns iptables -A INPUT -i 2 -j DROP")
-        s1.cmd("ip netns exec swns iptables -A FORWARD -i 1 -j DROP")
-        s1.cmd("ip netns exec swns iptables -A FORWARD -i 2 -j DROP")
+        s1.cmd("ifconfig 1 10.0.0.10")
+        s1.cmd("ifconfig 2 10.0.0.11")
 
-        info( '*** Running ping test between all hosts\n')
-        ret = self.net.pingAll()
+        print s1.pid
+        print h1.pid
+
+        info( '*** Running ping test between host-server\n')
+        ret = h1.cmd("ping -c 1 10.0.0.10")
+
+        sent, received = demoTest._parsePing(ret)
+
         #return code means whether the test is successful
-        if ret > 0:
-            return False
-        else:
+        print sent
+        if sent == received:
             return True
+        else:
+            return False
 
 
 if __name__ == '__main__':
