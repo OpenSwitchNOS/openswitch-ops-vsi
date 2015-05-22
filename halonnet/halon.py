@@ -51,6 +51,12 @@ class HalonSwitch (DockerNode, Switch):
         self.cmd("ovs-vsctl add-br br0")
         self.cmd("ovs-vsctl set bridge br0 datapath_type=netdev")
 
+    def startShell(self):
+        DockerNode.startShell(self)
+        self.cmd("ip link set dev eth0 down") 
+        self.cmd("ip link set dev eth0 name mgmt") 
+        self.cmd("ip link set dev mgmt up") 
+
     def stop(self, deleteIntfs=True):
         pass
 

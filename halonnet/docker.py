@@ -66,7 +66,7 @@ class DockerNode(Node):
                  self.shareddir + ":/tmp"] + 
                  mountParams + 
                  ["-h", self.container_name,
-                 "--name="+self.container_name, "--rm", "-ti", "--net='none'",
+                 "--name="+self.container_name, "--rm", "-ti",
                  self.image, "/bin/bash", "--rcfile",
                  "/tmp/" + bashrc_file_name]),
             "--timing=" + self.nodedir + "/transcript.timing",
