@@ -30,7 +30,7 @@ class HalonLink(DockerLink):
 
 
 class HalonSwitch (DockerNode, Switch):
-    def __init__(self, name, image='openhalon/as5712',
+    def __init__(self, name, image='openhalon/genericx86-64',
                  numPorts=5, **kwargs):
         super(HalonSwitch, self).__init__(name, image, **kwargs)
         self.inNamespace = True

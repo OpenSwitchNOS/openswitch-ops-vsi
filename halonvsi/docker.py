@@ -35,6 +35,11 @@ class DockerNode(Node):
         for mount in self.mounts:
             mountParams += ["-v", mount]
 
+        self.bashrc_file_name = "mininet_bash_rc"
+        f = open(self.shareddir + '/' + self.bashrc_file_name, "w")
+        f.write("export PS1='\177'")
+        f.close()
+
         cmd = ["docker", "run", "--privileged", "-v", self.shareddir + ":/tmp"] + \
               mountParams + \
               ["-h", self.container_name, "--name=" + self.container_name,
@@ -77,14 +82,9 @@ class DockerNode(Node):
             error("%s: shell is already running")
             return
 
-        bashrc_file_name = "mininet_bash_rc"
-        f = open(self.shareddir + '/' + bashrc_file_name, "w")
-        f.write("export PS1='\177'")
-        f.close()
-
         cmd = [ "mnexec", "-cd", "script", "-c",
                     ' '.join( [ "docker", "exec", "-ti", self.container_name,
-                                "/bin/bash", "--rcfile", "/tmp/" + bashrc_file_name]),
+                                "/bin/bash", "--rcfile", "/tmp/" + self.bashrc_file_name]),
                     "--timing=" + self.nodedir + "/transcript.timing",
                     "-q", "-f", self.nodedir + "/transcript"]
 
