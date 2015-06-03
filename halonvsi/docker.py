@@ -40,7 +40,11 @@ class DockerNode(Node):
         f.write("export PS1='\177'")
         f.close()
 
-        cmd = ["docker", "run", "--privileged", "-v", self.shareddir + ":/tmp"] + \
+        # /tmp File system on the docker app is wiped out after starting the docker.
+        # So don't create any files in /tmp directory of the docker app.
+        cmd = ["docker", "run", "--privileged",
+              "-v", self.shareddir + ":/shared",
+              "-v", "/dev/log:/dev/log"] + \
               mountParams + \
               ["-h", self.container_name, "--name=" + self.container_name,
                "-d", self.image, "/sbin/init"]
@@ -84,7 +88,7 @@ class DockerNode(Node):
 
         cmd = [ "mnexec", "-cd", "script", "-c",
                     ' '.join( [ "docker", "exec", "-ti", self.container_name,
-                                "/bin/bash", "--rcfile", "/tmp/" + self.bashrc_file_name]),
+                                "/bin/bash", "--rcfile", "/shared/" + self.bashrc_file_name]),
                     "--timing=" + self.nodedir + "/transcript.timing",
                     "-q", "-f", self.nodedir + "/transcript"]
 
