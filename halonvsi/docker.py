@@ -44,10 +44,11 @@ class DockerNode(Node):
         # So don't create any files in /tmp directory of the docker app.
         cmd = ["docker", "run", "--privileged",
               "-v", self.shareddir + ":/shared",
-              "-v", "/dev/log:/dev/log"] + \
+              "-v", "/dev/log:/dev/log",
+              "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
               mountParams + \
               ["-h", self.container_name, "--name=" + self.container_name,
-               "-d", self.image, "/sbin/init"]
+               "-d", self.image, '/sbin/init']
 
         Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
 

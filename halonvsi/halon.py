@@ -15,6 +15,7 @@ import re
 import argparse
 import os
 
+SWNS_EXEC = '/sbin/ip netns exec swns '
 
 class HalonHost (DockerHost):
     def __init__(self, name, image='ubuntu:latest', **kwargs):
@@ -33,19 +34,37 @@ class HalonSwitch (DockerNode, Switch):
     def __init__(self, name, image='openhalon/genericx86-64',
                  numPorts=5, **kwargs):
         super(HalonSwitch, self).__init__(name, image, **kwargs)
+
+        # Wait until the OVSDB is up in the Halon switch.
+        self.cmd("while true; do \
+                      /usr/bin/ovsdb-client dump 1>/dev/null 2>&1; \
+                      (( $? == 0 )) && break; \
+                 done")
+
         self.inNamespace = True
         self.numPorts = numPorts
 
     def start(self, controllers):
+        # Create TUN tap interface.
+        # Mininet would have created as many interfaces
+        # as the number of the hosts defined in the TOPO.
+        # Create the rest as TUN TAP interfaces
+        # in 'swns' namespace.
         for i in range(1, self.numPorts + 1):
             if str(i) not in self.nameToIntf:
-                self.cmd("ip tuntap add dev " + str(i) + " mode tap")
+                self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
+
+        # Move the interfaces created by Mininet to swns namespace.
+        for intf in self.nameToIntf:
+            if intf == 'lo':
+                continue
+            self.cmd("/sbin/ip link set " + intf + " netns swns")
 
     def startShell(self):
         DockerNode.startShell(self)
-        self.cmd("ip link set dev eth0 down") 
-        self.cmd("ip link set dev eth0 name mgmt") 
-        self.cmd("ip link set dev mgmt up") 
+        self.cmd("ip link set dev eth0 down")
+        self.cmd("ip link set dev eth0 name mgmt")
+        self.cmd("ip link set dev mgmt up")
 
     def stop(self, deleteIntfs=True):
         pass
@@ -58,10 +77,14 @@ class HalonTest:
         args = parser.parse_args()
         self.procArgs(args)
 
-        self.testdir = "/tmp/halonnet/" + self.id
+        self.testdir = "/tmp/halon-test/" + self.id
         os.makedirs(self.testdir)
 
         self.setLogLevel()
+
+        # Enable the following line to enable Debugging.
+        # self.setLogLevel('debug')
+
         self.setupNet()
 
     def setLogLevel(self, levelname='info'):
