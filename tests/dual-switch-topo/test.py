@@ -76,27 +76,24 @@ class demoTest( HalonTest ):
         #proper Halon commands
 
         h1.cmd("ifconfig h1-eth0 10.0.10.1 netmask 255.255.255.0 up")
-        s1.cmd("ifconfig 1 10.0.10.2 netmask 255.255.255.0 up")
-        s1.cmd("ifconfig 2 10.0.20.1 netmask 255.255.255.0 up")
-        s2.cmd("ifconfig 2 10.0.20.2 netmask 255.255.255.0 up")
-        s2.cmd("ifconfig 1 10.0.30.2 netmask 255.255.255.0 up")
         h2.cmd("ifconfig h2-eth0 10.0.30.1 netmask 255.255.255.0 up")
 
+        s1.swns_cmd("ifconfig 1 10.0.10.2 netmask 255.255.255.0 up")
+        s1.swns_cmd("ifconfig 2 10.0.20.1 netmask 255.255.255.0 up")
+        s2.swns_cmd("ifconfig 2 10.0.20.2 netmask 255.255.255.0 up")
+        s2.swns_cmd("ifconfig 1 10.0.30.2 netmask 255.255.255.0 up")
+
         #Add route on S1 and S2
-        s1.cmd("route add -net 10.0.30.0 netmask 255.255.255.0 gw 10.0.20.2")
-        s2.cmd("route add -net 10.0.10.0 netmask 255.255.255.0 gw 10.0.20.1")
+        s1.swns_cmd("route add -net 10.0.30.0 netmask 255.255.255.0 gw 10.0.20.2")
+        s2.swns_cmd("route add -net 10.0.10.0 netmask 255.255.255.0 gw 10.0.20.1")
 
         #Add default gateway in host
         h1.cmd("route add default gw 10.0.10.2")
         h2.cmd("route add default gw 10.0.30.2")
 
-        print s1.pid
-        print s2.pid
-        print h1.pid
-        print h2.pid
-
         info( '*** Running ping test between host1-sw1-sw2-host2\n')
         ret = h1.cmd("ping -c 1 10.0.30.1")
+        print ret
 
         sent, received = demoTest._parsePing(ret)
 

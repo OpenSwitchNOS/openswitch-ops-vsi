@@ -36,8 +36,8 @@ class demoTest( HalonTest ):
 
         #configuring Halon, in the future it would be through
         #proper Halon commands
-        s1.cmd("ifconfig 1 10.0.0.10")
-        s1.cmd("ifconfig 2 10.0.0.11")
+        s1.swns_cmd("ifconfig 1 10.0.0.10")
+        s1.swns_cmd("ifconfig 2 10.0.0.11")
 
         print s1.pid
         print h1.pid

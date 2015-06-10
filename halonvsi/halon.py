@@ -69,6 +69,9 @@ class HalonSwitch (DockerNode, Switch):
     def stop(self, deleteIntfs=True):
         pass
 
+    def swns_cmd(self, cmd):
+        return self.cmd(SWNS_EXEC + cmd)
+
 
 class HalonTest:
     def __init__(self):

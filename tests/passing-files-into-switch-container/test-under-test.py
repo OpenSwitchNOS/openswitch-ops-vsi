@@ -9,8 +9,8 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 from subprocess import *
-from halonnet.docker import *
-from halonnet.halon import *
+from halonvsi.docker import *
+from halonvsi.halon import *
 import select
 
 class demoTest( HalonTest ):
