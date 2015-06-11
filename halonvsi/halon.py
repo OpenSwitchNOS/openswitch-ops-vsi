@@ -59,6 +59,7 @@ class HalonSwitch (DockerNode, Switch):
             if intf == 'lo':
                 continue
             self.cmd("/sbin/ip link set " + intf + " netns swns")
+            self.swns_cmd("/sbin/ip link set " + intf + " up")
 
     def startShell(self):
         DockerNode.startShell(self)

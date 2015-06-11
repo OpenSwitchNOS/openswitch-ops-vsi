@@ -34,13 +34,9 @@ class demoTest( HalonTest ):
         s1 = self.net.switches[ 0 ]
         h1 = self.net.hosts[ 0 ]
 
-        #configuring Halon, in the future it would be through
-        #proper Halon commands
-        s1.swns_cmd("ifconfig 1 10.0.0.10")
-        s1.swns_cmd("ifconfig 2 10.0.0.11")
-
-        print s1.pid
-        print h1.pid
+        # Assign IP address to a switch interface to test
+        # connectivity between switch and host1
+        out = s1.swns_cmd("ifconfig 1 10.0.0.10 netmask 255.0.0.0")
 
         info( '*** Running ping test between host-server\n')
         ret = h1.cmd("ping -c 1 10.0.0.10")
