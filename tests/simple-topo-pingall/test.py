@@ -52,5 +52,14 @@ class demoTest( HalonTest ):
 
 
 if __name__ == '__main__':
+
+    # Create a test topology, and start it
     test = demoTest()
-    test.run(runCLI=False)
+
+    # Run all the tests sequentially here.
+    test.test()
+
+    # Set runCLI to true to debug test failures.
+    runCLI=False
+    if runCLI is True:
+        CLI(test.net)
