@@ -34,5 +34,6 @@ setup(
         'setuptools',
         'mininet'
     ],
+    package_data={'halonvsi' : ['scripts/*']},
     scripts=[],
 )

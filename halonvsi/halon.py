@@ -33,14 +33,17 @@ class HalonLink(DockerLink):
 
 class HalonSwitch (DockerNode, Switch):
     def __init__(self, name, image='openhalon/genericx86-64',
-                 numPorts=5, **kwargs):
+                 numPorts=70, **kwargs):
+        # Start Halon switch firmware in a docker
         super(HalonSwitch, self).__init__(name, image, **kwargs)
 
         # Wait until the OVSDB is up in the Halon switch.
-        self.cmd("while true; do \
-                      /usr/bin/ovsdb-client dump 1>/dev/null 2>&1; \
-                      (( $? == 0 )) && break; \
-                 done")
+        # Copy a script which waits until 'cur_hw' in the
+        # Open_Vswitch tables becomes greater than 0
+        dir, f = os.path.split(__file__)
+        switch_wait = os.path.join(dir, "scripts", "wait_for_halonswitch")
+        shutil.copy(switch_wait, self.shareddir)
+        self.cmd("/shared/wait_for_halonswitch")
 
         self.inNamespace = True
         self.numPorts = numPorts
@@ -64,9 +67,6 @@ class HalonSwitch (DockerNode, Switch):
 
     def startShell(self):
         DockerNode.startShell(self)
-        self.cmd("ip link set dev eth0 down")
-        self.cmd("ip link set dev eth0 name mgmt")
-        self.cmd("ip link set dev mgmt up")
 
     def stop(self, deleteIntfs=True):
         pass
@@ -85,13 +85,14 @@ class HalonTest:
         self.switchmounts = switchmounts
         self.hostmounts = hostmounts
 
+        # Set log level to 'debug' to enable Debugging.
+        self.setLogLevel('info')
+        info("\nHALON TEST START\n")
+
         self.testdir = "/tmp/halon-test/" + self.id
         shutil.rmtree(self.testdir, ignore_errors=True)
         os.makedirs(self.testdir)
-        info("Test log dir: " + self.testdir)
-
-        # Set log level to 'debug' to enable Debugging.
-        self.setLogLevel('info')
+        info("Test log dir: " + self.testdir + "\n")
 
         # Setup and start the network topology.
         if start_net is True:
