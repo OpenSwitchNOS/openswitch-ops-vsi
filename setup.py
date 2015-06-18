@@ -12,12 +12,13 @@ sys.path.append('.')
 VERSION = "1.0.0"
 
 modname = distname = 'halonvsi'
+utilname = 'halonutils'
 
 setup(
     name=distname,
     version=VERSION,
     description='Halon test/development infrastructure based on Mininet',
-    packages=[ modname ],
+    packages=[ modname, utilname ],
     long_description="""
         HalonVSI is an emulation platform to be used both during
         the development and testing of OpenHalon
