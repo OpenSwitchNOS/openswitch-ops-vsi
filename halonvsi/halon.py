@@ -74,6 +74,10 @@ class HalonSwitch (DockerNode, Switch):
     def swns_cmd(self, cmd):
         return self.cmd(SWNS_EXEC + cmd)
 
+    # OVS commands add double quotes around the strings
+    # in the output. This function removes them from the output.
+    def ovscmd(self, cmd):
+        return self.cmd(cmd).replace('"', '')
 
 class HalonTest:
     def __init__(self, test_id=None, switchmounts=[], hostmounts=[], start_net=True):
@@ -87,7 +91,7 @@ class HalonTest:
 
         # Set log level to 'debug' to enable Debugging.
         self.setLogLevel('info')
-        info("\nHALON TEST START\n")
+        info("\n============= HALON TEST START =============\n")
 
         self.testdir = "/tmp/halon-test/" + self.id
         shutil.rmtree(self.testdir, ignore_errors=True)
