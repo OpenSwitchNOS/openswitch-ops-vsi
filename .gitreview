@@ -1,4 +1,4 @@
 [gerrit]
-host=review.hpnos.io
+host=review.openhalon.io
 port=29418
-project=halon/halonnet.git
+project=openhalon/vsi.git
