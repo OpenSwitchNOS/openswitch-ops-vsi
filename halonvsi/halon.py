@@ -65,8 +65,40 @@ class HalonSwitch (DockerNode, Switch):
             self.cmd("/sbin/ip link set " + intf + " netns swns")
             self.swns_cmd("/sbin/ip link set " + intf + " up")
 
+    def startCLI(self):
+        # The vtysh shell is opened as subprocess in the docker 
+        # in interactive mode and the -t option in the vtysh adds 
+        # chr(127) in the prompt which we poll for in the read.
+        cmd = ["docker","exec","-i",self.container_name, "/usr/bin/vtysh", "-t"]
+        vtysh = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        self.cliStdin = vtysh.stdin
+        self.cliStdout = vtysh.stdout
+
     def startShell(self):
         DockerNode.startShell(self)
+        self.startCLI()
+
+    def writeCLI(self, fd, inp):
+        os.write(fd, inp + "\n")
+
+    def readCLI(self, fd, buflen=1024):
+        out = ''
+        while True:
+            data = os.read(fd, buflen)
+            if len(data) > 0:
+                out += data
+            if chr(127) in data:
+                out.replace(chr(127),'')
+                break
+        return out
+
+    def cmdCLI(self, inp, waiting=True):
+        if waiting:
+            self.writeCLI(self.cliStdin.fileno(), inp)
+            return self.readCLI(self.cliStdout.fileno(), 1024)
+        else:
+            self.writeCLI(self.cliStdin.fileno(), inp)
+        return ''
 
     def stop(self, deleteIntfs=True):
         pass
@@ -79,7 +111,7 @@ class HalonSwitch (DockerNode, Switch):
     def ovscmd(self, cmd):
         return self.cmd(cmd).replace('"', '')
 
-class HalonTest:
+class HalonTest(object):
     def __init__(self, test_id=None, switchmounts=[], hostmounts=[], start_net=True):
         # If 'test_id' is not passed use PID as the testid
         if test_id is None:
