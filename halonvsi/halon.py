@@ -34,6 +34,16 @@ class HalonLink(DockerLink):
 class HalonSwitch (DockerNode, Switch):
     def __init__(self, name, image='openhalon/genericx86-64',
                  numPorts=70, **kwargs):
+
+        # During Halon CIT test run, CT/FT tests can be run on
+        # multiple sandboxes at the same time.
+        # Each sandbox needs a different docker switch image.
+        # The top level makefile exports a ENV variable
+        # with the docker image name for that test run.
+        test_image = os.environ.get('VSI_IMAGE_NAME')
+        if test_image is not None:
+            image = test_image
+
         # Start Halon switch firmware in a docker
         super(HalonSwitch, self).__init__(name, image, **kwargs)
 
