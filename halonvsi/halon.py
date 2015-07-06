@@ -15,6 +15,7 @@ import select
 import re
 import argparse
 import os
+import uuid
 
 SWNS_EXEC = '/sbin/ip netns exec swns '
 
@@ -119,13 +120,21 @@ class HalonSwitch (DockerNode, Switch):
     # OVS commands add double quotes around the strings
     # in the output. This function removes them from the output.
     def ovscmd(self, cmd):
-        return self.cmd(cmd).replace('"', '')
+        out = self.cmd(cmd)
+
+        # Remove all the double quotes in the output.
+        out = out.replace('"', '')
+
+        # Some of the OVS commands are printing multiple new lines.
+        out = out.replace('\r\r','\r')
+
+        return out
 
 class HalonTest(object):
     def __init__(self, test_id=None, switchmounts=[], hostmounts=[], start_net=True):
-        # If 'test_id' is not passed use PID as the testid
+        # If 'test_id' is not passed create a random UUID.
         if test_id is None:
-            test_id = str(os.getpid())
+            test_id = str(uuid.uuid4())
 
         self.id = test_id
         self.switchmounts = switchmounts
