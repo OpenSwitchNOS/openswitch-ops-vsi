@@ -77,13 +77,19 @@ class HalonSwitch (DockerNode, Switch):
             self.swns_cmd("/sbin/ip link set " + intf + " up")
 
     def startCLI(self):
-        # The vtysh shell is opened as subprocess in the docker 
-        # in interactive mode and the -t option in the vtysh adds 
+        # The vtysh shell is opened as subprocess in the docker
+        # in interactive mode and the -t option in the vtysh adds
         # chr(127) in the prompt which we poll for in the read.
         cmd = ["docker","exec","-i",self.container_name, "/usr/bin/vtysh", "-t"]
         vtysh = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         self.cliStdin = vtysh.stdin
         self.cliStdout = vtysh.stdout
+
+        # Wait for prompt
+        while True:
+            data = os.read(vtysh.stdout.fileno(), 1024)
+            if data[-1] == chr(127):
+                break
 
     def startShell(self):
         DockerNode.startShell(self)
