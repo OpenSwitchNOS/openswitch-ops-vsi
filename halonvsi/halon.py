@@ -86,10 +86,7 @@ class HalonSwitch (DockerNode, Switch):
         self.cliStdout = vtysh.stdout
 
         # Wait for prompt
-        while True:
-            data = os.read(vtysh.stdout.fileno(), 1024)
-            if data[-1] == chr(127):
-                break
+        data = self.readCLI(vtysh.stdout.fileno(), 1024)
 
     def startShell(self):
         DockerNode.startShell(self)
@@ -104,7 +101,7 @@ class HalonSwitch (DockerNode, Switch):
             data = os.read(fd, buflen)
             if len(data) > 0:
                 out += data
-            if chr(127) in data:
+            if data[-1] == chr(127):
                 out.replace(chr(127),'')
                 break
         return out
