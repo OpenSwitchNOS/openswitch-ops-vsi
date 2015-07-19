@@ -138,8 +138,13 @@ class HalonSwitch (DockerNode, Switch):
 class HalonTest(object):
     def __init__(self, test_id=None, switchmounts=[], hostmounts=[], start_net=True):
         # If 'test_id' is not passed create a random UUID.
+        # Docker is unable to handle a container name with complete UUID.
+        # So take only the fifth field of it.
         if test_id is None:
-            test_id = str(uuid.uuid4())
+            test_id = str(uuid.uuid4().fields[4])
+            sbox_uuid = os.environ.get('SANDBOX_UUID')
+            if sbox_uuid is not None:
+                test_id = sbox_uuid + "-" + test_id
 
         self.id = test_id
         self.switchmounts = switchmounts
