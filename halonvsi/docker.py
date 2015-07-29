@@ -9,6 +9,9 @@ from mininet.util import *
 from subprocess import *
 import select
 
+# Using this constant for init_cmd will allow the docker image to execute
+# its own startup scripts/default CMD as defined in its corresponding Dockerfile.
+DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
 
 class DockerNode(Node):
     def __init__(self, name, image='ubuntu', **kwargs):
@@ -25,6 +28,7 @@ class DockerNode(Node):
         os.makedirs(self.shareddir)
 
         self.mounts = kwargs.pop('mounts', [])
+        self.init_cmd = kwargs.pop('init_cmd', '/sbin/init')
 
         # Just in case test isn't running in a container,
         # clean up any mess left by previous run
@@ -47,8 +51,11 @@ class DockerNode(Node):
               "-v", "/dev/log:/dev/log",
               "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
               mountParams + \
-              ["-h", self.container_name, "--name=" + self.container_name,
-               "-d", self.image, '/sbin/init']
+              ["-h", self.container_name, "--name=" + self.container_name, "-d",
+               self.image]
+
+        if self.init_cmd != DOCKER_DEFAULT_CMD:
+            cmd.append(self.init_cmd)
 
         Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
 
