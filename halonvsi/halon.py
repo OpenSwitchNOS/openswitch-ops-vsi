@@ -20,7 +20,8 @@ import uuid
 SWNS_EXEC = '/sbin/ip netns exec swns '
 
 class HalonHost (DockerHost):
-    def __init__(self, name, image='ubuntu:latest', **kwargs):
+    def __init__(self, name, **kwargs):
+        image = kwargs.pop('HostImage')
         super(HalonHost, self).__init__(name, image, **kwargs)
 
 
@@ -136,7 +137,7 @@ class HalonSwitch (DockerNode, Switch):
         return out
 
 class HalonTest(object):
-    def __init__(self, test_id=None, switchmounts=[], hostmounts=[], start_net=True):
+    def __init__(self, test_id=None, switchmounts=[], hostmounts=[], hostimage='ubuntu:latest', start_net=True):
         # If 'test_id' is not passed create a random UUID.
         # Docker is unable to handle a container name with complete UUID.
         # So take only the fifth field of it.
@@ -149,6 +150,7 @@ class HalonTest(object):
         self.id = test_id
         self.switchmounts = switchmounts
         self.hostmounts = hostmounts
+        self.hostimage = hostimage
 
         # Set log level to 'debug' to enable Debugging.
         self.setLogLevel('info')
@@ -170,9 +172,13 @@ class HalonTest(object):
     def getNodeOpts(self):
         return {'testid': self.id, 'testdir': self.testdir}
 
+    def setHostImageOpts(self, hostimage):
+        self.hostimage = hostimage
+
     def getHostOpts(self):
         opts = self.getNodeOpts()
         opts.update({'mounts':self.hostmounts})
+        opts.update({'HostImage':self.hostimage})
         return opts
 
     def getSwitchOpts(self):
