@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (C) 2015 Hewlett Packard Enterprise Development LP
 # All Rights Reserved.
 #
@@ -14,7 +12,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 # This script is used as a virtual test setup. By using this script,
 # or modifying it as required, developers can quickly build topologies
 # and test their changes on their VMs.
@@ -24,14 +21,11 @@
 # 3. Export the Halon docker image of the switch from your build directory.
 
 # To run this file, we have to point to the native python inside the sandbox.
-# ex: /usr/bin/sudo <SANDBOX>/build/tmp/sysroots/x86_64-linux/usr/bin/python-native/python2.7 example.py
+# ex: /usr/bin/sudo <SANDBOX>/build/tmp/sysroots/x86_64-linux/usr/bin/py.test -s example.py
 
-import os
-import sys
-import time
-import subprocess
 from halonvsi.docker import *
 from halonvsi.halon import *
+from halonutils.halonutil import *
 
 class CustomTopology( Topo ):
     '''
@@ -40,7 +34,7 @@ class CustomTopology( Topo ):
         & addLink methods, you can build custom topologies as shown below.
     '''
 
-    def build(self, hsts=2, sws=2, **_opts):
+    def build(self, hsts=2, sws=1, **_opts):
         '''Function to build the custom topology of two hosts and two switches'''
         self.hsts = hsts
         self.sws = sws
@@ -52,61 +46,39 @@ class CustomTopology( Topo ):
             switch = self.addSwitch('s%s' % s)
         #Add links between nodes based on custom topology
         self.addLink('h1', 's1')
-        self.addLink('h2', 's2')
-        self.addLink('s1', 's2')
+        self.addLink('h2', 's1')
 
-def topology():
-    # We can use different types of switches such as 'Switch', 'OVSSwitch'
-    # which come in built with Mininet. Shown below is the 'HalonSwitch' class
-    # with default configuration. For 'HalonSwitch', we can pass arguments
-    # to mention specific docker images.
-    # ex: switch = HalonSwitch(image="my_switch_image")
-    switch = HalonSwitch
+class twoSwitchTest( HalonTest ):
 
-    # We can use the default 'Host' class from Mininet or use the HalonHost class
-    # For 'HalonHost', we can mention specific images.
-    # ex. host = HalonHost(image="my_host_image")
-    host = HalonHost
+  def setupNet(self):
+    # if you override this function, make sure to
+    # either pass getNodeOpts() into hopts/sopts of the topology that
+    # you build or into addHost/addSwitch calls
+    self.net = Mininet(topo=CustomTopology(hsts=2, sws=1,
+                                           hopts=self.getHostOpts(),
+                                           sopts=self.getSwitchOpts()),
+                                           switch=HalonSwitch,
+                                           host=HalonHost,
+                                           link=HalonLink, controller=None,
+                                           build=True)
 
-    # There are no options as of now to modify HalonLink. DO NOT use the default Link
-    # class from Mininet.
-    link = HalonLink
+  def mininet_cli(self):
+    CLI(self.net)
 
-    # We can also pass options to the host/switch using the two variables below.
-    # Shown below is creating a directory to store test output.
-    test_id = str(os.getpid())
-    testdir = "/tmp/halon-test/" + test_id
-    os.makedirs(testdir)
-    print "Test log dir: " + testdir + "\n"
-    my_hopts = {'testid': test_id, 'testdir': testdir}
-    my_sopts = {'testid': test_id, 'testdir': testdir}
+class Test_example:
 
-    # Shown below is the default topology with two switches and two hosts.
-    # Edit the CustomTopology class above to build your own.
-    net = Mininet(topo=CustomTopology(hsts=2, sws=2
-                                      hopts=my_hopts,
-                                      sopts=my_sopts),
-                                      switch=HalonSwitch,
-                                      host=HalonHost,
-                                      link=HalonLink, controller=None,
-                                      build=True)
+  def setup_class(self):
+    # Create the Mininet topology based on mininet.
+    Test_example.test = twoSwitchTest()
 
-    # Mininet also has a list of standard topologies like SingleSwitchReversedTopo,
-    # LinearTopo, MultiGraph and so on. Refer to Mininet Doxygen documentation for details.
-    # Uncomment the line below for using Mininet's standard topology.
-    '''net = Mininet(topo=SingleSwitchTopo(k=2,
-                                        hopts=my_hopts,
-                                        sopts=my_sopts),
-                                        switch=HalonSwitch,
-                                        host=HalonHost,
-                                        link=HalonLink, controller=None,
-                                        build=True)'''
-    return net
+  # Test for slow routing between directly connected hosts
+  def test_mininet_cli(self):
+    self.test.mininet_cli()
 
-if __name__ == '__main__':
-    print "#################################### Halon Sample Script #########################\n"
-    print "example.py: This is a sample python script which represents a Virtual Test Platform\n"
-    net = topology()
-    net.start()
-    CLI(net)
-    net.stop()
+  def teardown_class(cls):
+    # Stop the Docker containers, and
+    # mininet topology
+    Test_example.test.net.stop()
+
+  def __del__(self):
+    del self.test
