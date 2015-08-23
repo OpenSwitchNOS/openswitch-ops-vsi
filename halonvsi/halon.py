@@ -21,6 +21,8 @@ SWNS_EXEC = '/sbin/ip netns exec swns '
 
 class HalonHost (DockerHost):
     def __init__(self, name, **kwargs):
+        kwargs['nodetype'] = "HalonHost"
+
         image = kwargs.pop('HostImage')
         super(HalonHost, self).__init__(name, image, **kwargs)
 
@@ -34,8 +36,9 @@ class HalonLink(DockerLink):
 
 
 class HalonSwitch (DockerNode, Switch):
-    def __init__(self, name, image='openhalon/genericx86-64',
+    def __init__(self, name, image='openswitch/genericx86-64',
                  numPorts=70, **kwargs):
+        kwargs['nodetype'] = "HalonSwitch"
 
         # During Halon CIT test run, CT/FT tests can be run on
         # multiple sandboxes at the same time.

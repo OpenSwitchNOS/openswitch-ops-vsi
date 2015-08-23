@@ -30,6 +30,8 @@ class DockerNode(Node):
         self.mounts = kwargs.pop('mounts', [])
         self.init_cmd = kwargs.pop('init_cmd', '/sbin/init')
 
+        self.nodetype = kwargs.pop('nodetype', "HalonSwitch")
+
         # Just in case test isn't running in a container,
         # clean up any mess left by previous run
         call( [ "docker rm -f " + self.container_name ], stdout=PIPE,
@@ -38,6 +40,13 @@ class DockerNode(Node):
         mountParams = []
         for mount in self.mounts:
             mountParams += ["-v", mount]
+
+        # If HalonHost simulate terminal, and run BASH
+        if self.nodetype == "HalonHost":
+            dockerOptions = "-dt"
+            self.init_cmd = "/bin/bash"
+        else:
+            dockerOptions = "-d"
 
         self.bashrc_file_name = "mininet_bash_rc"
         f = open(self.shareddir + '/' + self.bashrc_file_name, "w")
@@ -51,7 +60,7 @@ class DockerNode(Node):
               "-v", "/dev/log:/dev/log",
               "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
               mountParams + \
-              ["-h", self.container_name, "--name=" + self.container_name, "-d",
+              ["-h", self.container_name, "--name=" + self.container_name, dockerOptions,
                self.image]
 
         if self.init_cmd != DOCKER_DEFAULT_CMD:
