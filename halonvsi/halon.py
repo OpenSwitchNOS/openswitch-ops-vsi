@@ -37,7 +37,7 @@ class HalonLink(DockerLink):
 
 class HalonSwitch (DockerNode, Switch):
     def __init__(self, name, image='openswitch/genericx86-64',
-                 numPorts=70, **kwargs):
+                 numPorts=54, **kwargs):
         kwargs['nodetype'] = "HalonSwitch"
 
         # During Halon CIT test run, CT/FT tests can be run on
@@ -64,6 +64,12 @@ class HalonSwitch (DockerNode, Switch):
         for i in range(1, self.numPorts + 1):
             if str(i) not in self.nameToIntf:
                 self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
+
+        # In generic-X86 image ports 49-54 are QSFP splittable ports.
+        # so create subports for them.
+        for i in irange(49, 54):
+            for j in irange(1, 4):
+                self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap")
 
         # Move the interfaces created by Mininet to swns namespace.
         for intf in self.nameToIntf:
