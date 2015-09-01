@@ -11,17 +11,16 @@ sys.path.append('.')
 
 VERSION = "1.0.0"
 
-modname = distname = 'halonvsi'
-utilname = 'halonutils'
+distname = 'opsvsi'
 
 setup(
     name=distname,
     version=VERSION,
-    description='Halon test/development infrastructure based on Mininet',
-    packages=[ modname, utilname ],
+    description='OpenSwitch test/development infrastructure based on Mininet',
+    packages=[ 'halonvsi', 'opsvsi', 'halonutils', 'opsvsiutils' ],
     long_description="""
-        HalonVSI is an emulation platform to be used both during
-        the development and testing of OpenHalon
+        OpenSwitchVSI is an emulation platform to be used both during
+        the development and testing of OpenSwitch software.
         """,
     classifiers=[
           "License :: OSI Approved :: Apache Software License",
@@ -35,6 +34,6 @@ setup(
         'setuptools',
         'mininet'
     ],
-    package_data={'halonvsi' : ['scripts/*']},
+    package_data={'halonvsi' : ['scripts/*'], 'opsvsi' : ['scripts/*']},
     scripts=[],
 )
