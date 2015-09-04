@@ -82,7 +82,7 @@ class HalonSwitch (DockerNode, Switch):
         # The vtysh shell is opened as subprocess in the docker
         # in interactive mode and the -t option in the vtysh adds
         # chr(127) in the prompt which we poll for in the read.
-        cmd = ["docker","exec","-i",self.container_name, "/usr/bin/vtysh", "-t"]
+        cmd = ["docker","exec","-i",self.container_name, "/usr/bin/vtysh", "-t", "-vCONSOLE:ERR"]
         vtysh = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
         self.cliStdin = vtysh.stdin
         self.cliStdout = vtysh.stdout
