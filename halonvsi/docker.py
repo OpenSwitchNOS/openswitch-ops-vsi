@@ -42,7 +42,7 @@ class DockerNode(Node):
             mountParams += ["-v", mount]
 
         # If HalonHost simulate terminal, and run BASH
-        if self.nodetype == "HalonHost":
+        if self.nodetype == "HalonHost" or self.nodetype == "OmdSwitch":
             dockerOptions = "-dt"
             self.init_cmd = "/bin/bash"
         else:
