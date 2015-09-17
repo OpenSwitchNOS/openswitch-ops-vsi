@@ -96,7 +96,7 @@ class VsiOpenSwitch (DockerNode, Switch):
 
         # Wait until the OVSDB is up in the Openswitch.
         # Copy a script which waits until 'cur_hw' in the
-        # Open_Vswitch tables becomes greater than 0
+        # System tables becomes greater than 0
         dir, f = os.path.split(__file__)
         switch_wait = os.path.join(dir, "scripts", "wait_for_openswitch")
         shutil.copy(switch_wait, self.shareddir)
