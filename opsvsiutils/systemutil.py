@@ -1,6 +1,8 @@
-#This file is used to add common functions that can be used across test scripts
+# This file is used to add common functions
+# that can be used across test scripts.
 
 import re
+
 
 def parsePing(pingOutput):
     '''Parse ping output and check to see if ping succeeded or failed'''
