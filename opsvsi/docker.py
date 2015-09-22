@@ -9,9 +9,11 @@ from mininet.util import *
 from subprocess import *
 import select
 
-# Using this constant for init_cmd will allow the docker image to execute
-# its own startup scripts/default CMD as defined in its corresponding Dockerfile.
+# Using this constant for init_cmd will allow
+# the docker image to execute # its own startup
+# scripts/default CMD as defined in its corresponding Dockerfile.
 DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
+
 
 class DockerNode(Node):
     def __init__(self, name, image='ubuntu', **kwargs):
@@ -34,8 +36,8 @@ class DockerNode(Node):
 
         # Just in case test isn't running in a container,
         # clean up any mess left by previous run
-        call( [ "docker rm -f " + self.container_name ], stdout=PIPE,
-                stderr=PIPE, shell=True)
+        call(["docker rm -f " + self.container_name], stdout=PIPE,
+             stderr=PIPE, shell=True)
 
         mountParams = []
         for mount in self.mounts:
@@ -53,15 +55,16 @@ class DockerNode(Node):
         f.write("export PS1='\177'")
         f.close()
 
-        # /tmp File system on the docker app is wiped out after starting the docker.
+        # /tmp File system on the docker app is wiped out
+        # after starting the docker.
         # So don't create any files in /tmp directory of the docker app.
         cmd = ["docker", "run", "--privileged",
-              "-v", self.shareddir + ":/shared",
-              "-v", "/dev/log:/dev/log",
-              "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
-              mountParams + \
-              ["-h", self.container_name, "--name=" + self.container_name, dockerOptions,
-               self.image]
+               "-v", self.shareddir + ":/shared",
+               "-v", "/dev/log:/dev/log",
+               "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
+            mountParams + \
+            ["-h", self.container_name, "--name=" + self.container_name,
+             dockerOptions, self.image]
 
         if self.init_cmd != DOCKER_DEFAULT_CMD:
             cmd.append(self.init_cmd)
@@ -70,8 +73,8 @@ class DockerNode(Node):
 
         # Wait until container actually starts and grab it's PID
         while True:
-            pid_cmd = [ "docker", "inspect", "--format='{{ .State.Pid }}'",
-                        self.container_name]
+            pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
+                       self.container_name]
             pidp = Popen(pid_cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                          close_fds=False)
             ps_out = pidp.stdout.readlines()
@@ -81,8 +84,8 @@ class DockerNode(Node):
                 if pid != 0:
                     self.docker_pid = pid
                     debug("Docker container started.\n")
-                    debug(" Name=" + self.container_name);
-                    debug(" PID=", self.docker_pid);
+                    debug(" Name=" + self.container_name)
+                    debug(" PID=", self.docker_pid)
                     break
 
         super(DockerNode, self).__init__(name, **kwargs)
@@ -103,11 +106,12 @@ class DockerNode(Node):
             error("%s: shell is already running")
             return
 
-        cmd = [ "mnexec", "-cd", "script", "-c",
-                    ' '.join( [ "docker", "exec", "-ti", self.container_name,
-                                "/bin/bash", "--rcfile", "/shared/" + self.bashrc_file_name]),
-                    "--timing=" + self.nodedir + "/transcript.timing",
-                    "-q", "-f", self.nodedir + "/transcript"]
+        cmd = ["mnexec", "-cd", "script", "-c",
+               ' '.join(["docker", "exec", "-ti", self.container_name,
+                         "/bin/bash", "--rcfile",
+                         "/shared/" + self.bashrc_file_name]),
+               "--timing=" + self.nodedir + "/transcript.timing",
+               "-q", "-f", self.nodedir + "/transcript"]
 
         self.shell = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                            close_fds=True)

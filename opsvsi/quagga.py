@@ -10,6 +10,7 @@ QUAGGA_DOCKER_IMAGE = 'openswitch/quagga'
 # router bgp 7675.
 QUAGGA_DOCKER_DEFAULT_BGP_ASN = "7675"
 
+
 class QuaggaSwitch (DockerNode, Switch):
     def __init__(self, name, image=QUAGGA_DOCKER_IMAGE, **kwargs):
         # Override init_cmd so that the Docker image can execute its own script.

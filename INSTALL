@@ -1,4 +1,9 @@
-temporary - to be replace by real INSTALL file
+OPS-VSI is OpenSwitch component test framework.
+Developers does not need to install in on the Host python.
 
-run "setup.py build"
-run "setup.py install"
+To install this package in the OpenSwitch source code build directory:
+$> cd <TOP Level of OpenSwitch source repo>
+$> make devenv_ct_init
+
+The above command will install the ops-vsi in the sysroot of the current source build directory.
+Read OpenSwitch test frame work design document for more details.
