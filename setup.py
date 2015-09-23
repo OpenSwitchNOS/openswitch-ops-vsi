@@ -17,7 +17,7 @@ setup(
     name=distname,
     version=VERSION,
     description='OpenSwitch test/development infrastructure based on Mininet',
-    packages=[ 'halonvsi', 'opsvsi', 'halonutils', 'opsvsiutils' ],
+    packages=['opsvsi', 'opsvsiutils'],
     long_description="""
         OpenSwitchVSI is an emulation platform to be used both during
         the development and testing of OpenSwitch software.
@@ -34,6 +34,6 @@ setup(
         'setuptools',
         'mininet'
     ],
-    package_data={'halonvsi' : ['scripts/*'], 'opsvsi' : ['scripts/*']},
+    package_data={'opsvsi' : ['scripts/*']},
     scripts=[],
 )
