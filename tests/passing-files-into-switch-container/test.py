@@ -9,13 +9,13 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 from subprocess import *
-from halonvsi.docker import *
-from halonvsi.halon import *
+from opsvsi.docker import *
+from opsvsi.opsvsitest import *
 import select
 
-class demoTest( HalonTest ):
+class demoTest( OpsVsiTest ):
     def setupNet(self):
-        self.net = Mininet(switch=HalonSwitch, host=HalonHost)
+        self.net = Mininet(switch=VsiOpenSwitch, host=Host)
 
         self.s1 = self.net.addSwitch('s1', **self.getSwitchOpts())
         self.h1 = self.net.addHost('h1', **self.getHostOpts())

@@ -9,11 +9,11 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 from subprocess import *
-from halonvsi.docker import *
-from halonvsi.halon import *
+from opsvsi.docker import *
+from opsvsi.opsvsitest import *
 import select
 
-class demoTest( HalonTest ):
+class demoTest( OpsVsiTest ):
 
     @staticmethod
     def _parsePing( pingOutput ):

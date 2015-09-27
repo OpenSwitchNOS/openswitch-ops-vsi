@@ -16,16 +16,15 @@
 # or modifying it as required, developers can quickly build topologies
 # and test their changes on their VMs.
 # Pre-requisites:
-# 1. Checkout the halon-vsi repo.
+# 1. Checkout the ops-vsi repo.
 # 2. Run 'make devenv_ct_init'.
-# 3. Export the Halon docker image of the switch from your build directory.
+# 3. Export the docker image of the switch from your build directory.
 
 # To run this file, we have to point to the native python inside the sandbox.
 # ex: /usr/bin/sudo <SANDBOX>/build/tmp/sysroots/x86_64-linux/usr/bin/py.test -s example.py
 
-from halonvsi.docker import *
-from halonvsi.halon import *
-from halonutils.halonutil import *
+from opsvsi.docker import *
+from opsvsi.opsvsitest import *
 
 class CustomTopology( Topo ):
     '''
@@ -48,7 +47,7 @@ class CustomTopology( Topo ):
         self.addLink('h1', 's1')
         self.addLink('h2', 's1')
 
-class twoSwitchTest( HalonTest ):
+class twoSwitchTest( OpsVsiTest ):
 
   def setupNet(self):
     # if you override this function, make sure to
@@ -57,9 +56,9 @@ class twoSwitchTest( HalonTest ):
     self.net = Mininet(topo=CustomTopology(hsts=2, sws=1,
                                            hopts=self.getHostOpts(),
                                            sopts=self.getSwitchOpts()),
-                                           switch=HalonSwitch,
-                                           host=HalonHost,
-                                           link=HalonLink, controller=None,
+                                           switch=VsiOpenSwitch,
+                                           host=Host,
+                                           link=OpsVsiLink, controller=None,
                                            build=True)
 
   def mininet_cli(self):

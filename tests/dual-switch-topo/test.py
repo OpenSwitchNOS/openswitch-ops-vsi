@@ -9,8 +9,8 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 from subprocess import *
-from halonvsi.docker import *
-from halonvsi.halon import *
+from opsvsi.docker import *
+from opsvsi.opsvsitest import *
 import select
 
 class myTopo( Topo ):
@@ -35,20 +35,20 @@ class myTopo( Topo ):
         self.addLink('h2', 's2')
         self.addLink('s1', 's2')
 
-class demoTest( HalonTest ):
+class demoTest( OpsVsiTest ):
 
     """override the setupNet routine to craete custom Topo.
     pass the global variables switch,host,link to mininet topo
-    as HalonSwitch,HalonHost,HalonLink
+    as VsiOpenSwitch, Host, OpsVsiLink
     """
 
     def setupNet(self):
         self.net = Mininet(topo=myTopo(hsts=2, sws=2,
                                        hopts=self.getHostOpts(),
                                        sopts=self.getSwitchOpts()),
-                           switch=HalonSwitch,
-                           host=HalonHost,
-                           link=HalonLink, controller=None,
+                           switch=VsiOpenSwitch,
+                           host=Host,
+                           link=OpsVsiLink, controller=None,
                            build=True)
 
     @staticmethod
@@ -72,8 +72,8 @@ class demoTest( HalonTest ):
         h1 = self.net.hosts[ 0 ]
         h2 = self.net.hosts[ 1 ]
 
-        #configuring Halon, in the future it would be through
-        #proper Halon commands
+        #configuring OpenSwitch, in the future it would be through
+        #proper OpenSwitch commands
 
         h1.cmd("ifconfig h1-eth0 10.0.10.1 netmask 255.255.255.0 up")
         h2.cmd("ifconfig h2-eth0 10.0.30.1 netmask 255.255.255.0 up")
