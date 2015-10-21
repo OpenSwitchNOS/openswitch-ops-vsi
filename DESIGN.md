@@ -1,9 +1,6 @@
 # High level design of ops-vsi
 ops-vsi is *OpenSwitch* Development/Test infrastructure based on *Mininet*.
 
-## Contents
-[toc]
-
 ## Overview
 *Mininet* is a network emulator. It runs a collection of end-hosts, switches, and links on a single Linux kernel. It uses lightweight virtualization to make a single system look like a complete network, running the same kernel, system, and user code. ops-vsi is an extension to *Mininet*. In ops-vsi a switches are light weight docker container running *OpenSwitch* firmware. A special build of *OpenSwitch* firmware can run in a docker container. Multiple such dockers can be run in a single Linux machine and act as independent switches. In ops-vsi a end-host can be a docker container or a BASH running it a network namespace. *Mininet* can emulate virtual links between these switches & Hosts. A test developer can use these concepts and create a custom topology of switch & end-hosts connected to each other.
 
