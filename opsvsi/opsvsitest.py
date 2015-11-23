@@ -9,13 +9,13 @@ from mininet.util import *
 from mininet.topo import *
 from docker import *
 from subprocess import *
-from subprocess import *
 import shutil
 import select
 import re
 import argparse
 import os
 import uuid
+import pytest
 
 SWNS_EXEC = '/sbin/ip netns exec swns '
 
@@ -102,6 +102,42 @@ class VsiOpenSwitch (DockerNode, Switch):
         switch_wait = os.path.join(dir, "scripts", "wait_for_openswitch")
         shutil.copy(switch_wait, self.shareddir)
         self.cmd("/shared/wait_for_openswitch")
+        script_output = self.cmd("cat /shared/logs")
+        script_status = script_output.splitlines()[0]
+
+        if 'Failure' in script_status:
+            logs = "Container Name: " + self.container_name
+
+            cmd1 = ['docker', 'ps', '-a']
+            docker_ps = Popen(cmd1, stdout=PIPE)
+            out = docker_ps.communicate()[0]
+            logs = logs + "\nDocker ps :\n" + str(out)
+
+            cmd2 = ['docker', 'logs', self.container_name]
+            docker_logs = Popen(cmd2, stdout=PIPE)
+            out = docker_logs.communicate()[0]
+            logs = logs + "Docker logs :\n" + str(out)
+
+            cmd3 = ['cat', '/var/log/syslog']
+            cmd4 = ['grep' , 'switchd']
+            cat_cmd = Popen(cmd3, stdout=PIPE)
+            grep_cmd = Popen(cmd4, stdin=cat_cmd.stdout, stdout=PIPE)
+            out = grep_cmd.communicate()[0]
+            logs = logs + "Switchd logs :\n" + str(out)
+
+            switch_logs = os.path.join(self.shareddir, "logs")
+            f = open(switch_logs, 'a')
+            f.write(logs)
+            f.close()
+
+#            ls_coredump = self.cmd("ls /var/lib/systemd/coredump/")
+#            logs = logs + "ls_coredump :\n" + ls_coredump
+            self.cmd("cp -rf /var/lib/systemd/coredump /shared/coredump")
+
+            self.switchd_failed = True
+
+        else:
+            self.switchd_failed = False
 
         self.startCLI()
 
@@ -175,6 +211,10 @@ class OpsVsiTest(object):
         # Setup and start the network topology.
         if start_net is True:
             self.setupNet()
+            for switch in self.net.switches:
+                if switch.switchd_failed:
+                    self.net.stop()
+                    pytest.exit("Switchd failed to start up")
             self.net.start()
 
     def setLogLevel(self, levelname='info'):
