@@ -118,16 +118,19 @@ class VsiOpenSwitch (DockerNode, Switch):
             out = docker_logs.communicate()[0]
             logs = logs + "Docker logs :\n" + str(out)
 
+            switch_logs = os.path.join(self.shareddir, "logs")
+            f = open(switch_logs, 'a')
+            f.write(logs)
+            f.close()
+
             cmd3 = ['cat', '/var/log/syslog']
             cmd4 = ['grep' , 'switchd']
             cat_cmd = Popen(cmd3, stdout=PIPE)
             grep_cmd = Popen(cmd4, stdin=cat_cmd.stdout, stdout=PIPE)
-            out = grep_cmd.communicate()[0]
-            logs = logs + "Switchd logs :\n" + str(out)
-
-            switch_logs = os.path.join(self.shareddir, "logs")
-            f = open(switch_logs, 'a')
-            f.write(logs)
+            out_syslog = grep_cmd.communicate()[0]
+            switch_syslog = os.path.join(self.shareddir, "syslog_switchd")
+            f = open(switch_syslog, 'a')
+            f.write(out_syslog)
             f.close()
 
 #            ls_coredump = self.cmd("ls /var/lib/systemd/coredump/")
@@ -213,8 +216,10 @@ class OpsVsiTest(object):
             self.setupNet()
             for switch in self.net.switches:
                 if isinstance(switch, VsiOpenSwitch) and switch.switchd_failed:
+                    logs = switch.cmd("cat /shared/logs")
+                    print logs
                     self.net.stop()
-                    pytest.exit("Switchd failed to start up")
+                    pytest.fail("Switchd failed to start up")
             self.net.start()
 
     def setLogLevel(self, levelname='info'):
