@@ -18,7 +18,8 @@ import uuid
 import pytest
 
 SWNS_EXEC = '/sbin/ip netns exec swns '
-
+NS_EXEC = SWNS_EXEC
+NETNS_NAME = ' netns swns'
 
 class OpsVsiHost (DockerHost):
     def __init__(self, name, **kwargs):
@@ -57,6 +58,8 @@ class VsiOpenSwitch (DockerNode, Switch):
         self.numPorts = numPorts
 
     def start(self, controllers):
+        global NS_EXEC, NETNS_NAME
+
         # Create TUN tap interfaces.
         # Mininet would have created as many interfaces
         # as the number of the hosts defined in the TOPO.
@@ -72,12 +75,27 @@ class VsiOpenSwitch (DockerNode, Switch):
             for j in irange(1, 4):
                 self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap")
 
-        # Move the interfaces created by Mininet to swns namespace.
+        # If P4 switch simulation platform is running (runs inside "emulns"
+        # network namespace), move interfaces created by Mininet to "emulns"
+        # network namespace instead of "swns" network namespace.
+        #
+        # In addition, create missing TUN TAP interfaces in "swns" namespace.
+        # Interfaces created by Mininet will not occupy these slots if P4
+        # switch simulation platform is running.
+        netns = self.cmd("ls /var/run/netns")
+        if 'emulns' in netns:
+            NS_EXEC = '/sbin/ip netns exec emulns '
+            NETNS_NAME = ' netns emulns'
+            for i in range(1, self.numPorts + 1):
+                if str(i) in self.nameToIntf:
+                    self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
+
+        # Move the interfaces created by Mininet to intended namespace.
         for intf in self.nameToIntf:
             if intf == 'lo':
                 continue
-            self.cmd("/sbin/ip link set " + intf + " netns swns")
-            self.swns_cmd("/sbin/ip link set " + intf + " up")
+            self.cmd("/sbin/ip link set " + intf + NETNS_NAME)
+            self.cmd(NS_EXEC + "/sbin/ip link set " + intf + " up")
 
     def startCLI(self):
         # The vtysh shell is opened as subprocess in the docker
