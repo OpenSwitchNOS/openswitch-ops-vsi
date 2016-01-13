@@ -97,6 +97,12 @@ class VsiOpenSwitch (DockerNode, Switch):
             self.cmd("/sbin/ip link set " + intf + NETNS_NAME)
             self.cmd(NS_EXEC + "/sbin/ip link set " + intf + " up")
 
+            # Feed moved interfaces to P4 switch simulation platform
+            # Keep Port to Interface mapping as per ports.yaml
+            if 'emulns' in netns:
+                self.cmd(NS_EXEC + "echo port_add " + intf + " " + intf + " | " +
+                         NS_EXEC + "/usr/bin/bm_tools/runtime_CLI.py --json /usr/share/ovs_p4_plugin/switch_bmv2.json --thrift-port 10001")
+
     def startCLI(self):
         # The vtysh shell is opened as subprocess in the docker
         # in interactive mode and the -t option in the vtysh adds
