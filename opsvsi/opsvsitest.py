@@ -177,9 +177,9 @@ class VsiOpenSwitch (DockerNode, Switch):
             data = os.read(fd, buflen)
             if len(data) > 0:
                 out += data
-            if data[-1] == chr(127):
-                out.replace(chr(127), '')
-                break
+                if data[-1] == chr(127):
+                    out.replace(chr(127), '')
+                    break
         return out
 
     def cmdCLI(self, inp, waiting=True):
