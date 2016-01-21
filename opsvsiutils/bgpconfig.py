@@ -62,9 +62,11 @@ class BgpConfig(object):
 
 # Prefix-list configurations
 class PrefixList(object):
-    def __init__(self, name, seq_num, action, network, prefixLen):
+    def __init__(self, name, seq_num, action, network, prefixLen, ge, le):
         self.name = name
         self.seq_num = seq_num
         self.action = action
         self.network = network
         self.prefixLen = prefixLen
+        self.ge = ge
+        self.le = le
