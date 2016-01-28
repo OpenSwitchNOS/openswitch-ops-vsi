@@ -160,14 +160,33 @@ class SwitchVtyshUtils(object):
             if (network in rte) and (next_hop in rte):
                 return True
 
+        routes = SwitchVtyshUtils.vtysh_cmd(switch, "sh ipv6 bgp")
+
+        if print_routes:
+            info("### Routes for switch %s ###\n" % switch.name)
+            info("%s\n" % routes)
+
+        routes = routes.split(VTYSH_CR)
+
+        for rte in routes:
+            if (network in rte) and (next_hop in rte):
+                return True
+
         return False
 
     @staticmethod
     def verify_show_ip_bgp_route(switch, network, next_hop):
-        info("### Verifying - show ip bgp route - Network: %s, "
+        info("### Verifying - show ip bgp routei/show ipv6 bgp - Network: %s, "
              "Next-Hop: %s ###\n" % (network, next_hop))
 
         cmd = "sh ip bgp %s" % network
+        routes = SwitchVtyshUtils.vtysh_cmd(switch, cmd).split(VTYSH_CR)
+
+        for rte in routes:
+            if (network in rte) and (next_hop in rte):
+                return True
+
+        cmd = "sh ipv6 bgp %s" % network
         routes = SwitchVtyshUtils.vtysh_cmd(switch, cmd).split(VTYSH_CR)
 
         for rte in routes:

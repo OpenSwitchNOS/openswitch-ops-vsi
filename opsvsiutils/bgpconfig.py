@@ -42,7 +42,7 @@ class BgpConfig(object):
         self.networks = []
         self.routeMaps = []
         self.prefixLists = []
-
+        self.prefixListEntries = []
         self.asn = asn
         self.routerid = routerid
 
@@ -68,3 +68,14 @@ class PrefixList(object):
         self.action = action
         self.network = network
         self.prefixLen = prefixLen
+
+# Prefix-list Entry configurations
+class PrefixListEntry(object):
+    def __init__(self, name, seq_num, action, network, prefixLen, ge, le):
+        self.name = name
+        self.seq_num = seq_num
+        self.action = action
+        self.network = network
+        self.prefixLen = prefixLen
+        self.ge = ge
+        self.le = le
