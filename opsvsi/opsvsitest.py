@@ -74,41 +74,36 @@ class VsiOpenSwitch (DockerNode, Switch):
     def start(self, controllers):
         global NS_EXEC, NETNS_NAME
 
+        # If P4 switch simulation platform is running (runs inside "emulns"
+        # network namespace), move interfaces created by Mininet to "emulns"
+        # network namespace instead of "swns" network namespace.
+        netns = self.cmd("ls /var/run/netns")
+        if 'emulns' in netns:
+            NS_EXEC = '/sbin/ip netns exec emulns '
+            NETNS_NAME = ' netns emulns'
+
         # Create TUN tap interfaces.
         # Mininet would have created as many interfaces
         # as the number of the hosts defined in the TOPO.
         # Create the rest as TUN TAP interfaces
         # in 'swns' namespace.
-        for i in range(1, self.numPorts + 1):
-            if str(i) not in self.nameToIntf:
-                cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap"
-                self.tuntap_failed = self.tuntap_cmd(cmd)
-                if self.tuntap_failed:
-                    return
-
-        # In generic-X86 image ports 49-54 are QSFP splittable ports.
-        # so create subports for them.
-        for i in irange(49, 54):
-            for j in irange(1, 4):
-                cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap"
-                self.tuntap_failed = self.tuntap_cmd(cmd)
-                if self.tuntap_failed:
-                    return
-
-        # If P4 switch simulation platform is running (runs inside "emulns"
-        # network namespace), move interfaces created by Mininet to "emulns"
-        # network namespace instead of "swns" network namespace.
         #
-        # In addition, create missing TUN TAP interfaces in "swns" namespace.
-        # Interfaces created by Mininet will not occupy these slots if P4
-        # switch simulation platform is running.
-        netns = self.cmd("ls /var/run/netns")
-        if 'emulns' in netns:
-            NS_EXEC = '/sbin/ip netns exec emulns '
-            NETNS_NAME = ' netns emulns'
+        # P4 switch plugin creates TAP interfaces based on its YAML file.
+        # So do not create TAP interfaces as part of test framework.
+        self.tuntap_failed = False
+        if 'emulns' not in netns:
             for i in range(1, self.numPorts + 1):
-                if str(i) in self.nameToIntf:
+                if str(i) not in self.nameToIntf:
                     cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap"
+                    self.tuntap_failed = self.tuntap_cmd(cmd)
+                    if self.tuntap_failed:
+                        return
+
+            # In generic-X86 image ports 49-54 are QSFP splittable ports.
+            # so create subports for them.
+            for i in irange(49, 54):
+                for j in irange(1, 4):
+                    cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap"
                     self.tuntap_failed = self.tuntap_cmd(cmd)
                     if self.tuntap_failed:
                         return
@@ -123,7 +118,7 @@ class VsiOpenSwitch (DockerNode, Switch):
             # Feed moved interfaces to P4 switch simulation platform
             # Keep Port to Interface mapping as per ports.yaml
             if 'emulns' in netns:
-                self.cmd(NS_EXEC + "echo port_add " + intf + " " + intf + " | " +
+                self.cmd(NS_EXEC + "echo port_add " + intf + " " + str(int(intf) - 1) + " | " +
                          NS_EXEC + "/usr/bin/bm_tools/runtime_CLI.py --json /usr/share/ovs_p4_plugin/switch_bmv2.json --thrift-port 10001")
 
     def startCLI(self):
