@@ -17,7 +17,7 @@ setup(
     name=distname,
     version=VERSION,
     description='OpenSwitch test/development infrastructure based on Mininet',
-    packages=['opsvsi', 'opsvsiutils'],
+    packages=['opsvsi', 'opsvsiutils', 'opsvsiutils.restutils'],
     long_description="""
         OpenSwitchVSI is an emulation platform to be used both during
         the development and testing of OpenSwitch software.
