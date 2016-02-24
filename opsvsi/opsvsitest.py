@@ -57,6 +57,21 @@ class VsiOpenSwitch (DockerNode, Switch):
         self.inNamespace = True
         self.numPorts = numPorts
 
+    def tuntap_cmd(self, tuntap_cmd):
+        cmd = "timeout 2 " + tuntap_cmd
+        self.cmd(cmd)
+        return_code = self.cmd("echo $?")
+        if int(return_code) == 124:
+            cmd = "timeout 5 strace " + tuntap_cmd
+            strace_output = self.cmd(cmd)
+            print "#### strace output (failed tuntap command) - start ####"
+            print "Tuntap command : " + tuntap_cmd
+            print strace_output
+            print "#### strace output (failed tuntap command) - end ####"
+            return True
+        else:
+            return False
+
     def start(self, controllers):
         global NS_EXEC, NETNS_NAME
 
@@ -67,13 +82,19 @@ class VsiOpenSwitch (DockerNode, Switch):
         # in 'swns' namespace.
         for i in range(1, self.numPorts + 1):
             if str(i) not in self.nameToIntf:
-                self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
+                cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap"
+                self.tuntap_failed = self.tuntap_cmd(cmd)
+                if self.tuntap_failed:
+                    return
 
         # In generic-X86 image ports 49-54 are QSFP splittable ports.
         # so create subports for them.
         for i in irange(49, 54):
             for j in irange(1, 4):
-                self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap")
+                cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap"
+                self.tuntap_failed = self.tuntap_cmd(cmd)
+                if self.tuntap_failed:
+                    return
 
         # If P4 switch simulation platform is running (runs inside "emulns"
         # network namespace), move interfaces created by Mininet to "emulns"
@@ -88,7 +109,10 @@ class VsiOpenSwitch (DockerNode, Switch):
             NETNS_NAME = ' netns emulns'
             for i in range(1, self.numPorts + 1):
                 if str(i) in self.nameToIntf:
-                    self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
+                    cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap"
+                    self.tuntap_failed = self.tuntap_cmd(cmd)
+                    if self.tuntap_failed:
+                        return
 
         # Move the interfaces created by Mininet to intended namespace.
         for intf in self.nameToIntf:
@@ -132,13 +156,13 @@ class VsiOpenSwitch (DockerNode, Switch):
         if 'Failure' in script_status:
             logs = "Container Name: " + self.container_name
 
-            cmd1 = ['docker', 'ps', '-a']
-            docker_ps = Popen(cmd1, stdout=PIPE)
+            docker_ps_cmd = ['docker', 'ps', '-a']
+            docker_ps = Popen(docker_ps_cmd, stdout=PIPE)
             out = docker_ps.communicate()[0]
             logs = logs + "\nDocker ps :\n" + str(out)
 
-            cmd2 = ['docker', 'logs', self.container_name]
-            docker_logs = Popen(cmd2, stdout=PIPE)
+            docker_logs_cmd = ['docker', 'logs', self.container_name]
+            docker_logs = Popen(docker_logs_cmd, stdout=PIPE)
             out = docker_logs.communicate()[0]
             logs = logs + "Docker logs :\n" + str(out)
 
@@ -156,10 +180,6 @@ class VsiOpenSwitch (DockerNode, Switch):
             f = open(switch_syslog, 'a')
             f.write(out_syslog)
             f.close()
-
-#            ls_coredump = self.cmd("ls /var/lib/systemd/coredump/")
-#            logs = logs + "ls_coredump :\n" + ls_coredump
-            self.cmd("cp -rf /var/lib/systemd/coredump /shared/coredump")
 
             self.switchd_failed = True
 
@@ -242,9 +262,21 @@ class OpsVsiTest(object):
                 if isinstance(switch, VsiOpenSwitch) and switch.switchd_failed:
                     logs = switch.cmd("cat /shared/logs")
                     print logs
+                    self.printSyslogOnFailure()
                     self.net.stop()
                     pytest.fail("Switchd failed to start up")
             self.net.start()
+            for switch in self.net.switches:
+                if isinstance(switch, VsiOpenSwitch) and switch.tuntap_failed:
+                    self.printSyslogOnFailure()
+                    self.net.stop()
+                    pytest.fail("Failure adding tuntap interfaces")
+
+    def printSyslogOnFailure(self):
+        tail_syslog_cmd = ['tail', '-n', '200', '/var/log/syslog']
+        tail_cmd = Popen(tail_syslog_cmd, stdout=PIPE)
+        out = tail_cmd.communicate()[0]
+        print "Last 200 lines of /var/log/syslog :\n" + str(out)
 
     def setLogLevel(self, levelname='info'):
         setLogLevel(levelname)
