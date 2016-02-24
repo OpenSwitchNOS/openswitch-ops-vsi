@@ -57,6 +57,19 @@ class VsiOpenSwitch (DockerNode, Switch):
         self.inNamespace = True
         self.numPorts = numPorts
 
+    def tuntap_cmd(self, tuntap_cmd):
+        cmd = "timeout 2 " + tuntap_cmd
+        self.cmd(cmd)
+        return_code = self.cmd("echo $?")
+        if int(return_code) == 124:
+            cmd = "timeout 5 strace " + tuntap_cmd
+            strace_output = self.cmd(cmd)
+            print "#### strace output (failed tuntap command) - start ####"
+            print "Tuntap command : " + tuntap_cmd
+            print strace_output
+            print "#### strace output (failed tuntap command) - end ####"
+            self.tuntap_failed = True
+
     def start(self, controllers):
         global NS_EXEC, NETNS_NAME
 
@@ -65,15 +78,22 @@ class VsiOpenSwitch (DockerNode, Switch):
         # as the number of the hosts defined in the TOPO.
         # Create the rest as TUN TAP interfaces
         # in 'swns' namespace.
+        self.tuntap_failed = False
         for i in range(1, self.numPorts + 1):
             if str(i) not in self.nameToIntf:
-                self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
+                if self.tuntap_failed:
+                    return
+                cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap"
+                self.tuntap_cmd(cmd)
 
         # In generic-X86 image ports 49-54 are QSFP splittable ports.
         # so create subports for them.
         for i in irange(49, 54):
             for j in irange(1, 4):
-                self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap")
+                if self.tuntap_failed:
+                    return
+                cmd = SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + "-" + str(j) + " mode tap"
+                self.tuntap_cmd(cmd)
 
         # If P4 switch simulation platform is running (runs inside "emulns"
         # network namespace), move interfaces created by Mininet to "emulns"
@@ -88,6 +108,8 @@ class VsiOpenSwitch (DockerNode, Switch):
             NETNS_NAME = ' netns emulns'
             for i in range(1, self.numPorts + 1):
                 if str(i) in self.nameToIntf:
+                    if self.tuntap_failed:
+                        return
                     self.cmd(SWNS_EXEC + "/sbin/ip tuntap add dev " + str(i) + " mode tap")
 
         # Move the interfaces created by Mininet to intended namespace.
@@ -156,10 +178,6 @@ class VsiOpenSwitch (DockerNode, Switch):
             f = open(switch_syslog, 'a')
             f.write(out_syslog)
             f.close()
-
-#            ls_coredump = self.cmd("ls /var/lib/systemd/coredump/")
-#            logs = logs + "ls_coredump :\n" + ls_coredump
-            self.cmd("cp -rf /var/lib/systemd/coredump /shared/coredump")
 
             self.switchd_failed = True
 
@@ -245,6 +263,10 @@ class OpsVsiTest(object):
                     self.net.stop()
                     pytest.fail("Switchd failed to start up")
             self.net.start()
+            for switch in self.net.switches:
+                if isinstance(switch, VsiOpenSwitch) and switch.tuntap_failed:
+                    self.net.stop()
+                    pytest.fail("Failure adding tuntap interfaces")
 
     def setLogLevel(self, levelname='info'):
         setLogLevel(levelname)
