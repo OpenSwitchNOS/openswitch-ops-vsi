@@ -8,6 +8,7 @@ from mininet.log import *
 from mininet.util import *
 from subprocess import *
 import select
+import os
 
 # Using this constant for init_cmd will allow
 # the docker image to execute # its own startup
@@ -58,13 +59,24 @@ class DockerNode(Node):
         # /tmp File system on the docker app is wiped out
         # after starting the docker.
         # So don't create any files in /tmp directory of the docker app.
-        cmd = ["docker", "run", "--privileged",
-               "-v", self.shareddir + ":/shared",
-               "-v", "/dev/log:/dev/log",
-               "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
-            mountParams + \
-            ["-h", self.container_name, "--name=" + self.container_name,
-             dockerOptions, self.image]
+        env_cov_data_dir = os.environ.get('VSI_COV_DATA_DIR', None)
+        if env_cov_data_dir is None:
+            cmd = ["docker", "run", "--privileged",
+                   "-v", self.shareddir + ":/shared",
+                   "-v", "/dev/log:/dev/log",
+                   "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
+                   mountParams + \
+                   ["-h", self.container_name, "--name=" + self.container_name,
+                    dockerOptions, self.image]
+        else:
+            cmd = ["docker", "run", "--privileged",
+                   "-v", self.shareddir + ":/shared",
+                   "-v", "/dev/log:/dev/log",
+                   "-v", "/sys/fs/cgroup:/sys/fs/cgroup",
+                   "-v", env_cov_data_dir + ":" + env_cov_data_dir] +\
+                   mountParams + \
+                   ["-h", self.container_name, "--name=" + self.container_name,
+                    dockerOptions, self.image]
 
         if self.init_cmd != DOCKER_DEFAULT_CMD:
             cmd.append(self.init_cmd)
