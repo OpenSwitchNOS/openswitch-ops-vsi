@@ -27,7 +27,6 @@ import subprocess
 
 from opsvsi.opsvsitest import *
 from copy import deepcopy
-from string import rstrip
 
 PORT_DATA = {
     "configuration": {
@@ -58,6 +57,11 @@ PORT_DATA = {
     },
     "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
 }
+
+LOGIN_URI = '/login'
+ACCOUNT_URI = "/account"
+DEFAULT_USER = 'netop'
+DEFAULT_PASSWORD = 'netop'
 
 
 def get_container_id(switch):
@@ -290,31 +294,48 @@ def random_ip6_address():
     return ipv6
 
 
-def login(dut, user_name, user_password):
+def login(switch_ip, username=None, password=None):
+    '''
+    Common function to login the user into the system.
+    Optionally takes username and/or password, otherwise
+    the default user and password from ops_netop group
+    is used.
+    Returns the Cookie header.
+    '''
 
-    sslcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    sslcontext.verify_mode = ssl.CERT_REQUIRED
-    sslcontext.check_hostname = False
-    src_path = os.path.dirname(os.path.realpath(__file__))
-    src_file = os.path.join(src_path, 'server.crt')
-    sslcontext.load_verify_locations(src_file)
-    conn = httplib.HTTPSConnection(dut.SWITCH_IP, 443, context=sslcontext)
-    url = '/login'
+    # Force to provide a password if a username is provided
+    if username is not None:
+        assert password is not None, "Must provide password for Login"
 
-    body = {'username': user_name, 'password': user_password}
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept": "text/plain"}
-    conn.request('POST', url, urllib.urlencode(body), headers)
+    # Initialize parameters
 
-    response = conn.getresponse()
-    dut.HEADERS = {'Cookie': response.getheader('set-cookie')}
+    if not username:
+        username = DEFAULT_USER
+    if not password:
+        password = DEFAULT_PASSWORD
 
-    status_code, response_data = response.status, response.read()
-    conn.close()
-    if not dut.HEADERS['Cookie'] is None:
-        return True
-    else:
-        return False
+    params = {'username': username,
+              'password': password}
+    _headers = {"Content-type": "application/x-www-form-urlencoded",
+                "Accept": "text/plain"}
+
+    # Attempt Login
+    response, response_data = execute_request(LOGIN_URI, "POST",
+                                              urllib.urlencode(params),
+                                              switch_ip, True, _headers)
+    assert response.status == httplib.OK, ("Login POST not successful, " +
+                                           "code: %s " % response.status)
+    # Get cookie header
+    cookie_header = {'Cookie': response.getheader('set-cookie')}
+
+    # Verify Login was successful
+    status_code, response_data = execute_request(LOGIN_URI, "GET", None,
+                                                 switch_ip, False,
+                                                 cookie_header)
+    assert status_code == httplib.OK, ("Login GET not successful, " +
+                                       "code: %s " % response.status)
+
+    return cookie_header
 
 
 def get_json(response_data):
