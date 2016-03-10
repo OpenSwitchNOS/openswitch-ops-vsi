@@ -95,6 +95,8 @@ def update_test_field(switch_ip, path, field, new_value):
         - Update field with new_value
         - Perform a PUT request
     """
+    info("### Updating path: %s, field: %s, with new value: %s ###\n" %
+         (path, field, new_value))
     status_code, response_data = execute_request(path,
                                                  "GET",
                                                  None,
