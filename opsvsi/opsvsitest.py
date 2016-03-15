@@ -58,15 +58,15 @@ class VsiOpenSwitch (DockerNode, Switch):
         self.numPorts = numPorts
 
     def tuntap_cmd(self, tuntap_cmd):
-        cmd = "timeout 10 strace " + tuntap_cmd
-        strace_output = self.cmd(cmd)
+        cmd = "timeout 10 " + tuntap_cmd
+        cmd_output = self.cmd(cmd)
         return_code = self.cmd("echo $?")
         if int(return_code) == 124:
-            print "#### strace output (failed tuntap command) - start ####"
+            print "#### Failed tuntap command - start ####"
             print "Return code : " + str(return_code)
             print "Tuntap command : " + tuntap_cmd
-            print strace_output
-            print "#### strace output (failed tuntap command) - end ####"
+            print cmd_output
+            print "#### Failed tuntap command - end ####"
             return True
         else:
             return False
