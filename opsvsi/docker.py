@@ -64,6 +64,7 @@ class DockerNode(Node):
             cmd = ["docker", "run", "--privileged",
                    "-v", self.shareddir + ":/shared",
                    "-v", "/dev/log:/dev/log",
+                   "-v", "/lib/modules:/lib/modules",
                    "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
                    mountParams + \
                    ["-h", self.container_name, "--name=" + self.container_name,
@@ -73,6 +74,7 @@ class DockerNode(Node):
                    "-v", self.shareddir + ":/shared",
                    "-v", "/dev/log:/dev/log",
                    "-v", "/sys/fs/cgroup:/sys/fs/cgroup",
+                   "-v", "/lib/modules:/lib/modules",
                    "-v", env_cov_data_dir + ":" + env_cov_data_dir] +\
                    mountParams + \
                    ["-h", self.container_name, "--name=" + self.container_name,
