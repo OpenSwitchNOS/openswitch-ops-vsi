@@ -16,6 +16,7 @@ import argparse
 import os
 import uuid
 import pytest
+import inspect
 
 SWNS_EXEC = '/sbin/ip netns exec swns '
 NS_EXEC = SWNS_EXEC
@@ -59,8 +60,8 @@ class VsiOpenSwitch (DockerNode, Switch):
 
     def tuntap_cmd(self, tuntap_cmd):
         cmd = "timeout 10 " + tuntap_cmd
-        cmd_output = self.cmd(cmd)
-        return_code = self.cmd("echo $?")
+        cmd_output = self.ovscmd(cmd)
+        return_code = self.ovscmd("echo $?")
         if int(return_code) == 124:
             print "#### Failed tuntap command - start ####"
             print "Return code : " + str(return_code)
@@ -244,7 +245,9 @@ class OpsVsiTest(object):
         self.setLogLevel('info')
         info("\n============= OpenSwitchVsi TEST START =============\n")
 
-        self.testdir = "/tmp/openswitch-test/" + self.id
+        filepath = os.path.abspath(inspect.stack()[1][1])
+        filename = os.path.splitext(os.path.basename(filepath))[0]
+        self.testdir = "/tmp/openswitch-test/" + filename + "_" + self.id
         shutil.rmtree(self.testdir, ignore_errors=True)
         os.makedirs(self.testdir)
         info("Test log dir: " + self.testdir + "\n")
@@ -254,8 +257,11 @@ class OpsVsiTest(object):
             self.setupNet()
             for switch in self.net.switches:
                 if isinstance(switch, VsiOpenSwitch) and switch.switchd_failed:
-                    logs = switch.cmd("cat /shared/logs")
-                    print logs
+                    logs = switch.ovscmd("cat /shared/logs")
+                    try:
+                        print logs
+                    except UnicodeDecodeError:
+                        print "Got unicode error when parsing log file"
                     self.printSyslogOnFailure()
                     self.net.stop()
                     pytest.fail("Switchd failed to start up")
