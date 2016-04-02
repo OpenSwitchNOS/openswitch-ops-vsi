@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2015 Hewlett Packard Enterprise Development LP
+# Copyright (C) 2015-2016 Hewlett Packard Enterprise Development LP
 # All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,6 +18,7 @@
 import pytest
 
 from opsvsi.opsvsitest import *
+from opsvsiutils.restutils.utils import login
 
 from utils import *
 
@@ -85,17 +86,18 @@ FAKE_BRIDGE_DATA = """
 """
 
 
-def create_fake_port(path, switch_ip, port_index):
+def create_fake_port(path, switch_ip, port_index, cookie_header=None):
+    if cookie_header is None:
+        cookie_header = login(switch_ip)
+
     data = FAKE_PORT_DATA % {"index": port_index}
 
     info("\n---------- Creating fake port (%s) ----------\n" %
          port_index)
     info("Testing path: %s\nTesting data: %s\n" % (path, data))
 
-    response_status, response_data = execute_request(path,
-                                                     "POST",
-                                                     data,
-                                                     switch_ip)
+    response_status, response_data = execute_request(
+        path, "POST", data, switch_ip, xtra_header=cookie_header)
 
     assert response_status == httplib.CREATED, \
         "Response status received: %s\n" % response_status
@@ -108,17 +110,19 @@ def create_fake_port(path, switch_ip, port_index):
          port_index)
 
 
-def create_fake_vlan(path, switch_ip, fake_vlan_name, vlan_id):
+def create_fake_vlan(path, switch_ip, fake_vlan_name, vlan_id,
+                     cookie_header=None):
+    if cookie_header is None:
+        cookie_header = login(switch_ip)
+
     data = FAKE_VLAN_DATA % {"name": fake_vlan_name, "id": vlan_id}
 
     info("\n---------- Creating fake vlan (%s) ----------\n" %
          fake_vlan_name)
     info("Testing Path: %s\nTesting Data: %s\n" % (path, data))
 
-    response_status, response_data = execute_request(path,
-                                                     "POST",
-                                                     data,
-                                                     switch_ip)
+    response_status, response_data = execute_request(
+        path, "POST", data, switch_ip, xtra_header=cookie_header)
 
     assert response_status == httplib.CREATED, \
         "Response status received: %s\n" % response_status
@@ -131,17 +135,18 @@ def create_fake_vlan(path, switch_ip, fake_vlan_name, vlan_id):
          fake_vlan_name)
 
 
-def create_fake_bridge(path, switch_ip, fake_bridge_name):
+def create_fake_bridge(path, switch_ip, fake_bridge_name, cooie_header=None):
+    if cookie_header is None:
+        cookie_header = login(switch_ip)
+
     data = FAKE_BRIDGE_DATA % fake_bridge_name
 
     info("\n---------- Creating fake bridge (%s) ----------\n" %
          fake_bridge_name)
     info("Testing path: %s\nTesting data: %s\n" % (path, data))
 
-    response_status, response_data = execute_request(path,
-                                                     "POST",
-                                                     data,
-                                                     switch_ip)
+    response_status, response_data = execute_request(
+        path, "POST", data, switch_ip, xtra_header=cookie_header)
 
     assert response_status == httplib.CREATED, \
         "Response status: %s\n" % response_status
