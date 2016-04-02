@@ -79,15 +79,17 @@ def get_switch_ip(switch):
 
 
 def create_test_port(ip):
+    cookie_header = login(ip)
     path = "/rest/v1/system/ports"
     status_code, response_data = execute_request(path,
                                                  "POST",
                                                  json.dumps(PORT_DATA),
-                                                 ip)
+                                                 ip, xtra_header=cookie_header)
     return status_code, response_data
 
 
 def update_test_field(switch_ip, path, field, new_value):
+    cookie_header = login(switch_ip)
     """
     Update field from existing table:
         - Perform a GET request to an existing path defined in path
@@ -98,7 +100,8 @@ def update_test_field(switch_ip, path, field, new_value):
     status_code, response_data = execute_request(path,
                                                  "GET",
                                                  None,
-                                                 switch_ip)
+                                                 switch_ip,
+                                                 xtra_header=cookie_header)
 
     assert status_code is httplib.OK, \
         "Wrong status code, received: %s\n" % status_code
@@ -121,7 +124,8 @@ def update_test_field(switch_ip, path, field, new_value):
     status_code, response_data = execute_request(path,
                                                  "PUT",
                                                  json.dumps(port_info),
-                                                 switch_ip)
+                                                 switch_ip,
+                                                 xtra_header=cookie_header)
     assert status_code == httplib.OK, \
         "Wrong status code, received: %s\n" % status_code
     assert response_data is "", \
@@ -157,6 +161,7 @@ def compare_dict(dict1, dict2):
 
 def execute_port_operations(data, port_name, http_method, operation_uri,
                             switch_ip):
+    cookie_header = login(switch_ip)
 
     results = []
 
@@ -175,7 +180,8 @@ def execute_port_operations(data, port_name, http_method, operation_uri,
             # Create a test port
             status_code, response_data = \
                 execute_request(operation_uri, "POST",
-                                json.dumps(request_data), switch_ip)
+                                json.dumps(request_data), switch_ip,
+                                xtra_header=cookie_header)
 
             if status_code != httplib.CREATED:
                 return []
@@ -199,7 +205,8 @@ def execute_port_operations(data, port_name, http_method, operation_uri,
         status_code, response_data = execute_request(port_uri,
                                                      http_method,
                                                      json.dumps(request_data),
-                                                     switch_ip)
+                                                     switch_ip,
+                                                     xtra_header=cookie_header)
 
         # Check if status code was as expected
 
@@ -239,13 +246,15 @@ def execute_request(path, http_method, data, ip, full_response=False,
 
 
 def create_test_ports(ip, num_ports):
+    cookie_header = login(ip)
     path = "/rest/v1/system/ports"
 
     data = deepcopy(PORT_DATA)
     for port in range(num_ports):
         data["configuration"]["name"] = "Port%s" % port
-        status_code, response_data = execute_request(path, "POST",
-                                                     json.dumps(data), ip)
+        status_code, response_data = execute_request(
+            path, "POST", json.dumps(data), ip, xtra_header=cookie_header)
+
         if status_code != httplib.CREATED:
             return status_code
 
@@ -358,6 +367,8 @@ def validate_keys_complete_object(json_data):
 
 
 def rest_sanity_check(switch_ip):
+    cookie_header = login(switch_ip)
+    info("Cookie Header" + str(cookie_header))
     info("\nSwitch Sanity Check: Verify if System table row and bridge_normal \
         exist\n")
     # Check if bridge_normal is ready, loop until ready or timeout finish
@@ -369,9 +380,11 @@ def rest_sanity_check(switch_ip):
         info("\nSwitch Sanity Check: Try count %d \n" % count)
         try:
             status_system, response_system = \
-                execute_request(system_path, "GET", None, switch_ip)
+                execute_request(system_path, "GET", None, switch_ip,
+                                xtra_header=cookie_header)
             status_bridge, response_bridge = \
-                execute_request(bridge_path, "GET", None, switch_ip)
+                execute_request(bridge_path, "GET", None, switch_ip,
+                                xtra_header=cookie_header)
 
             if status_system is httplib.OK and \
                     response_system is not None and \
