@@ -17,6 +17,8 @@ import os
 import uuid
 import pytest
 import inspect
+import subprocess
+import sys
 
 SWNS_EXEC = '/sbin/ip netns exec swns '
 NS_EXEC = SWNS_EXEC
@@ -184,7 +186,15 @@ class VsiOpenSwitch (DockerNode, Switch):
         self.startCLI()
 
     def writeCLI(self, fd, inp):
-        os.write(fd, inp + "\n")
+        try:
+            os.write(fd, inp + "\n")
+        except OSError as err:
+            info("os.write failed. Checking for running dockers --> \n")
+            docker_logs = Popen(['docker', 'ps', '-a'], stdout=PIPE)
+            out = docker_logs.communicate()[0]
+            info(out)
+            info(err.args)
+            raise err
 
     def readCLI(self, fd, buflen=1024):
         out = ''
