@@ -83,8 +83,14 @@ class DockerNode(Node):
         if self.init_cmd != DOCKER_DEFAULT_CMD:
             cmd.append(self.init_cmd)
 
-        Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-
+        dPid = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        # do we have to read stdout/stderr now before we wait
+        d_out = dPid.stdout.readlines();
+        dPid.wait();
+        if dPid.returncode != 0:
+            # dump d_out and then abort I guess
+            debug(d_out)
+            error("Failed to start docker")
         # Wait until container actually starts and grab it's PID
         while True:
             pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
