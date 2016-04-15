@@ -90,7 +90,7 @@ class DockerNode(Node):
         if dPid.returncode != 0:
             # dump d_out and then abort I guess
             debug(d_out)
-            error("Failed to start docker")
+            error("Failed to start docker - "+str(dPid.returncode))
         # Wait until container actually starts and grab it's PID
         while True:
             pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
