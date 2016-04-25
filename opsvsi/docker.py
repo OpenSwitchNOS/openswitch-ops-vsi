@@ -21,7 +21,7 @@ class DockerNode(Node):
         self.image = image
 
         self.testid = kwargs.pop('testid', None)
-        self.container_name = self.testid + '-' + name
+        self.container_name = self.testid + '_' + name
 
         self.testdir = kwargs.pop('testdir', None)
         self.nodedir = self.testdir + '/' + name
