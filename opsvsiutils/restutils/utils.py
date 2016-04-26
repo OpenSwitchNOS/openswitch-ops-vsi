@@ -62,6 +62,11 @@ ACCOUNT_URI = "/account"
 DEFAULT_USER = 'netop'
 DEFAULT_PASSWORD = 'netop'
 
+SSL_CFG_VERSION = 'ssl_version'
+SSL_CFG_VERIFY_MODE = 'verify_mode'
+SSL_CFG_CHECK_HOSTNAME = 'check_hostname'
+SSL_CFG_CA_CERTS = 'ca_certs'
+
 
 def get_container_id(switch):
     container_name = switch.testid + "_" + switch.name
@@ -221,6 +226,29 @@ def execute_port_operations(data, port_name, http_method, operation_uri,
     return results
 
 
+def get_ssl_config():
+    ssl_config = {}
+    ssl_config[SSL_CFG_VERSION] = ssl.PROTOCOL_SSLv23
+    ssl_config[SSL_CFG_VERIFY_MODE] = ssl.CERT_REQUIRED
+    ssl_config[SSL_CFG_CHECK_HOSTNAME] = False
+
+    cert_path = os.path.dirname(os.path.realpath(__file__))
+    cert_file = os.path.join(cert_path, 'server.crt')
+    ssl_config[SSL_CFG_CA_CERTS] = cert_file
+
+    return ssl_config
+
+
+def get_ssl_context():
+    ssl_config = get_ssl_config()
+    ssl_context = ssl.SSLContext(ssl_config[SSL_CFG_VERSION])
+    ssl_context.verify_mode = ssl_config[SSL_CFG_VERIFY_MODE]
+    ssl_context.check_hostname = ssl_config[SSL_CFG_CHECK_HOSTNAME]
+    ssl_context.load_verify_locations(ssl_config[SSL_CFG_CA_CERTS])
+
+    return ssl_context
+
+
 def execute_request(path, http_method, data, ip, full_response=False,
                     xtra_header=None):
 
@@ -230,13 +258,7 @@ def execute_request(path, http_method, data, ip, full_response=False,
     if xtra_header:
         headers.update(xtra_header)
 
-    sslcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    sslcontext.verify_mode = ssl.CERT_REQUIRED
-    sslcontext.check_hostname = False
-    src_path = os.path.dirname(os.path.realpath(__file__))
-    src_file = os.path.join(src_path, 'server.crt')
-    sslcontext.load_verify_locations(src_file)
-    conn = httplib.HTTPSConnection(ip, 443, context=sslcontext)
+    conn = httplib.HTTPSConnection(ip, 443, context=get_ssl_context())
     conn.request(http_method, url, data, headers)
     response = conn.getresponse()
     status_code, response_data = response.status, response.read()
