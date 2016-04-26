@@ -17,7 +17,7 @@ DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
 
 
 class DockerNode(Node):
-    def __init__(self, name, image='ubuntu', **kwargs):
+    def __init__(self, name, image='openswitch/ubuntutest', **kwargs):
         self.image = image
 
         self.testid = kwargs.pop('testid', None)
