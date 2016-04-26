@@ -236,7 +236,7 @@ class VsiOpenSwitch (DockerNode, Switch):
 
 
 class OpsVsiTest(object):
-    def __init__(self, test_id=None, switchmounts=[], hostmounts=[], hostimage='ubuntu:latest', start_net=True):
+    def __init__(self, test_id=None, switchmounts=[], hostmounts=[], hostimage='openswitch/ubuntutest:latest', start_net=True):
         # If 'test_id' is not passed create a random UUID.
         # Docker is unable to handle a container name with complete UUID.
         # So take only the fifth field of it.
