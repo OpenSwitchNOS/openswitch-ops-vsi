@@ -426,3 +426,23 @@ def rest_sanity_check(switch_ip):
     assert count <= max_retries, "Switch Sanity check failure: After waiting \
         %d seconds, the switch is still not ready to run the tests" \
         % max_retries
+
+
+def get_server_crt(switch):
+    container_id = get_container_id(switch)
+    info("\n Getting SSL cert from server container %s" % container_id)
+    try:
+        res = subprocess.check_output(['docker', 'cp', container_id + \
+                                       ':/etc/ssl/certs/server.crt', \
+                                       '/tmp/server.crt'])
+        time.sleep(1)
+    except subprocess.CalledProcessError as e:
+        info("Error in subprocess docker cp command\n")
+
+
+def remove_server_crt():
+    crt_file = '/tmp/server.crt'
+    if os.path.exists(crt_file):
+        info('\n Removing the SSL cert')
+        os.remove(crt_file)
+    info('\n SSL cert successfuly removed')
