@@ -3,6 +3,7 @@
 MAXTIME=30
 COUNTER=0
 IS_SWITCH_UP=0
+CUR_HW=0
 
 while [ $IS_SWITCH_UP -ne 1 ] && [ $COUNTER -lt $MAXTIME ]
 do
@@ -10,7 +11,7 @@ do
     /bin/ls /var/run/openvswitch/ops-switchd.pid
     SWITCHD="$?"
     if [ $((CUR_HW)) -eq 1 ] && [ "$SWITCHD" = 0 ]; then
-        echo "ops-switchd has come up"
+        echo "ops-switchd has come up" >> /shared/logs
         IS_SWITCH_UP=1
     fi
     if [ $IS_SWITCH_UP -ne 1 ]; then
@@ -19,14 +20,27 @@ do
     fi
 done
 
-if [ $IS_SWITCH_UP -ne 1 ]; then
-    echo "Script Run : Failure" >> /shared/logs
+if [ $CUR_HW -ne 1 ]; then
+    echo "CUR_HW Failure" >> /shared/logs
+    ovs-vsctl list Daemon >> /shared/logs
+    rm -f /var/lib/systemd/coredump/
+    echo "Coredump -->" >> /shared/logs
+    coredumpctl gdb >> /shared/logs
+    echo "All the running processes:" >> /shared/logs
+    ps -aef >> /shared/logs
+elif [ $IS_SWITCH_UP -ne 1 ]; then
+    echo "Switchd Failure" >> /shared/logs
     echo "CUR_HW column : " $CUR_HW >> /shared/logs
-    SWITCHD="Down"
-    echo "Switch state : " $SWITCHD >> /shared/logs
-    systemctl status >> /shared/logs
-    systemctl --state=failed --all >> /shared/logs
-    ps -ef >> /shared/logs
+
+    rm -f /var/lib/systemd/coredump/
+    ovsdb-client dump Daemon >> /shared/logs
+    echo "Coredump -->" >> /shared/logs
+    coredumpctl gdb >> /shared/logs
+    echo "All the running processes:" >> /shared/logs
+    ps -aef >> /shared/logs
+
+    systemctl status >> /shared/systemctl
+    systemctl --state=failed --all >> /shared/systemctl
 else
     echo "Script Run : Success" >> /shared/logs
 fi
