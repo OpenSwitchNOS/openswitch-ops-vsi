@@ -136,6 +136,29 @@ class VsiOpenSwitch (DockerNode, Switch):
         # Wait for prompt
         data = self.readCLI(vtysh.stdout.fileno(), 1024)
 
+    def shared_logs(self):
+        logs = "Container Name: " + self.container_name
+
+        docker_ps_cmd = ['docker', 'ps', '-a']
+        docker_ps = Popen(docker_ps_cmd, stdout=PIPE)
+        out = docker_ps.communicate()[0]
+        logs = logs + "\nDocker ps :\n" + str(out)
+
+        switch_logs = os.path.join(self.shareddir, "logs")
+        f = open(switch_logs, 'a')
+        f.write(logs)
+        f.close()
+
+        cmd3 = ['cat', '/var/log/syslog']
+        cmd4 = ['grep' , 'switchd']
+        cat_cmd = Popen(cmd3, stdout=PIPE)
+        grep_cmd = Popen(cmd4, stdin=cat_cmd.stdout, stdout=PIPE)
+        out_syslog = grep_cmd.communicate()[0]
+        switch_syslog = os.path.join(self.shareddir, "syslog_switchd")
+        f = open(switch_syslog, 'a')
+        f.write(out_syslog)
+        f.close()
+
     def startShell(self):
 
         DockerNode.startShell(self)
@@ -150,38 +173,19 @@ class VsiOpenSwitch (DockerNode, Switch):
         script_output = self.cmd("cat /shared/logs")
         script_status = script_output.splitlines()[0]
 
-        if 'Failure' in script_status:
-            logs = "Container Name: " + self.container_name
+        if 'Hardware' in script_status:
+            self.shared_logs()
+            self.switchd_failed = False
+            self.cur_hw_failed = True
 
-            docker_ps_cmd = ['docker', 'ps', '-a']
-            docker_ps = Popen(docker_ps_cmd, stdout=PIPE)
-            out = docker_ps.communicate()[0]
-            logs = logs + "\nDocker ps :\n" + str(out)
-
-            docker_logs_cmd = ['docker', 'logs', self.container_name]
-            docker_logs = Popen(docker_logs_cmd, stdout=PIPE)
-            out = docker_logs.communicate()[0]
-            logs = logs + "Docker logs :\n" + str(out)
-
-            switch_logs = os.path.join(self.shareddir, "logs")
-            f = open(switch_logs, 'a')
-            f.write(logs)
-            f.close()
-
-            cmd3 = ['cat', '/var/log/syslog']
-            cmd4 = ['grep' , 'switchd']
-            cat_cmd = Popen(cmd3, stdout=PIPE)
-            grep_cmd = Popen(cmd4, stdin=cat_cmd.stdout, stdout=PIPE)
-            out_syslog = grep_cmd.communicate()[0]
-            switch_syslog = os.path.join(self.shareddir, "syslog_switchd")
-            f = open(switch_syslog, 'a')
-            f.write(out_syslog)
-            f.close()
-
+        elif 'Failure' in script_status:
+            self.shared_logs()
             self.switchd_failed = True
+            self.cur_hw_failed = False
 
         else:
             self.switchd_failed = False
+            self.cur_hw_failed = False
 
         self.startCLI()
 
@@ -266,15 +270,23 @@ class OpsVsiTest(object):
         if start_net is True:
             self.setupNet()
             for switch in self.net.switches:
-                if isinstance(switch, VsiOpenSwitch) and switch.switchd_failed:
-                    logs = switch.ovscmd("cat /shared/logs")
-                    try:
-                        print logs
-                    except UnicodeDecodeError:
-                        print "Got unicode error when parsing log file"
-                    self.printSyslogOnFailure()
-                    self.net.stop()
-                    pytest.fail("Switchd failed to start up")
+                if isinstance(switch, VsiOpenSwitch):
+                    if switch.cur_hw_failed:
+                        logs = switch.ovscmd("cat /shared/logs")
+                        self.printSyslogOnFailure()
+                        self.net.stop()
+                        pytest.fail("Some hardware daemon failed to boot up\n")
+                    elif switch.switchd_failed:
+                        logs = switch.ovscmd("cat /shared/logs")
+                        # try:
+                        #     print logs
+                        # except UnicodeDecodeError:
+                        #     print "Got unicode error when parsing log file"
+                        self.printSyslogOnFailure()
+                        self.net.stop()
+                        pytest.fail("Switchd failed to start up")
+                    else:
+                        print("Switch %s booted up successfully" % switch.container_name)
             self.net.start()
             for switch in self.net.switches:
                 if isinstance(switch, VsiOpenSwitch) and switch.tuntap_failed:
