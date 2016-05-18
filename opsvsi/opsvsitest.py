@@ -84,6 +84,8 @@ class VsiOpenSwitch (DockerNode, Switch):
         if 'emulns' in netns:
             NS_EXEC = '/sbin/ip netns exec emulns '
             NETNS_NAME = ' netns emulns'
+            # give some time for p4 plugin to initialize
+            time.sleep(15)
 
         # Create TUN tap interfaces.
         # Mininet would have created as many interfaces
