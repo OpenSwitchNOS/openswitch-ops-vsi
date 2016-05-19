@@ -149,6 +149,16 @@ class VsiOpenSwitch (DockerNode, Switch):
         f.write(logs)
         f.close()
 
+    def get_syslog_on_failure(self):
+        # Print last 2000 lines of syslog to a file
+        syslog = os.path.join(self.shareddir, "syslog")
+        f = open(syslog, 'a')
+        tail_syslog_cmd = ['tail', '-n', '2000', '/var/log/syslog']
+        tail_cmd = Popen(tail_syslog_cmd, stdout=PIPE)
+        out = tail_cmd.communicate()[0]
+        f.write(out)
+        f.close()
+
     def startShell(self):
 
         DockerNode.startShell(self)
@@ -165,11 +175,13 @@ class VsiOpenSwitch (DockerNode, Switch):
 
         if 'CUR_HW Failure' in script_status:
             self.shared_logs()
+            self.get_syslog_on_failure()
             self.switchd_failed = False
             self.cur_hw_failed = True
 
         elif 'Switchd Failure' in script_status:
             self.shared_logs()
+            self.get_syslog_on_failure()
             self.switchd_failed = True
             self.cur_hw_failed = False
 
@@ -264,15 +276,13 @@ class OpsVsiTest(object):
                     if switch.cur_hw_failed:
                         logs = switch.ovscmd("cat /shared/logs")
                         print logs
-                        print("cur_hw was not set to 1. Check the logs folder : " + self.testdir)
-                        self.printSyslogOnFailure()
+                        print "cur_hw was not set to 1. Check the logs folder : " + self.testdir + "\n"
                         self.net.stop()
                         pytest.fail("CUR_HW was not set to 1\n")
                     elif switch.switchd_failed:
                         logs = switch.ovscmd("cat /shared/logs")
                         print logs
-                        print("Switchd failed to start up. Check the logs folder : " + self.testdir)
-                        self.printSyslogOnFailure()
+                        print "Switchd failed to start up. Check the logs folder : " + self.testdir + "\n"
                         self.net.stop()
                         pytest.fail("Switchd failed to start up")
                     else:
@@ -280,15 +290,9 @@ class OpsVsiTest(object):
             self.net.start()
             for switch in self.net.switches:
                 if isinstance(switch, VsiOpenSwitch) and switch.tuntap_failed:
-                    self.printSyslogOnFailure()
+                    switch.get_syslog_on_failure()
                     self.net.stop()
                     pytest.fail("Failure adding tuntap interfaces")
-
-    def printSyslogOnFailure(self):
-        tail_syslog_cmd = ['tail', '-n', '200', '/var/log/syslog']
-        tail_cmd = Popen(tail_syslog_cmd, stdout=PIPE)
-        out = tail_cmd.communicate()[0]
-        print "Last 200 lines of /var/log/syslog :\n" + str(out)
 
     def setLogLevel(self, levelname='info'):
         setLogLevel(levelname)
