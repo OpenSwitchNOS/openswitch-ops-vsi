@@ -23,23 +23,31 @@ done
 if [ $CUR_HW -ne 1 ]; then
     # Please dont add any other echoes to write to /shared/logs before this one
     echo "CUR_HW Failure" >> /shared/logs
+    echo "CUR_HW column: " $CUR_HW >> /shared/logs
+    echo "Switchd PID status: " $IS_SWITCH_UP >> /shared/logs
+    echo "Daemon Table:" >> /shared/logs
     ovs-vsctl list Daemon >> /shared/logs
-    echo "Coredump -->" >> /shared/logs
+    echo "Coredump:" >> /shared/logs
     coredumpctl gdb >> /shared/logs
     echo "All the running processes:" >> /shared/logs
     ps -aef >> /shared/logs
+    systemctl status >> /shared/systemctl
+    systemctl --state=failed --all >> /shared/systemctl
+    ovsdb-client dump >> /shared/ovsdb_dump
 elif [ $IS_SWITCH_UP -ne 1 ]; then
     # Please dont add any other to write to /shared/logs echoes before this one
     echo "Switchd Failure" >> /shared/logs
-    echo "CUR_HW column : " $CUR_HW >> /shared/logs
+    echo "CUR_HW column: " $CUR_HW >> /shared/logs
+    echo "Switchd PID status: " $IS_SWITCH_UP >> /shared/logs
+    echo "Daemon Table:" >> /shared/logs
     ovs-vsctl list Daemon >> /shared/logs
-    echo "Coredump -->" >> /shared/logs
+    echo "Coredump:" >> /shared/logs
     coredumpctl gdb >> /shared/logs
     echo "All the running processes:" >> /shared/logs
     ps -aef >> /shared/logs
-
     systemctl status >> /shared/systemctl
     systemctl --state=failed --all >> /shared/systemctl
+    ovsdb-client dump >> /shared/ovsdb_dump
 else
     echo "Script Run : Success" >> /shared/logs
 fi
