@@ -15,6 +15,57 @@ import os
 # scripts/default CMD as defined in its corresponding Dockerfile.
 DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
 
+# This function dumps the last "LINES_TO_DUMP" lines from the docker daemon logs
+# Docker daemon logs can be gathered by different means depending on the host OS
+# For example:
+#    Ubuntu - /var/log/upstart/docker.log
+#    CentOS - /var/log/daemon.log | grep docker
+#    Boot2Docker - /var/log/docker.log
+#    Debian GNU/Linux - /var/log/daemon.log
+#    Fedora - journalctl -u docker.service
+#    Red Hat Enterprise Linux Server - /var/log/messages | grep docker
+#    OpenSuSE - journalctl -u docker.service
+# For now we'll cater to Ubuntu & CentOS cases alone.
+
+def dumpDockerLogFile():
+    import os, platform
+
+    LINES_TO_DUMP = 100
+    DOCKER_LOG_FILE = ""
+    DOCKER_FILTER = ""
+
+    platform_system = str(platform.system()).lower()
+    platform_version = str(platform.version()).lower()
+
+    if "linux" in platform_system:
+        if "ubuntu" in platform_version:
+            DOCKER_LOG_FILE = "/var/log/upstart/docker.log"
+        elif "centos" in platform_version:
+            DOCKER_LOG_FILE = "/var/log/daemon.log"
+            DOCKER_FILTER = "docker"
+        else:
+            error("dumpDockerLogFile: Unknown platform")
+            return
+    else:
+        error("dumpDockerLogFile: Unknown platform")
+        return
+
+    if os.path.isfile(DOCKER_LOG_FILE) and os.access(DOCKER_LOG_FILE, os.R_OK):
+        with open(DOCKER_LOG_FILE, "r") as docker_log_file:
+            if not DOCKER_FILTER:
+                lines = docker_log_file.readlines()
+            else:
+                debug('dumpDockerLogFile: docker filter = %s' % DOCKER_FILTER)
+                lines = [line for line in docker_log_file if DOCKER_FILTER in line]
+    else:
+        error("dumpDockerLogFile: Docker daemon log file not found")
+        return
+
+    #print last "LINES_TO_DUMP" lines
+    debug("Printing last %d lines from the docker daemon log\n" % LINES_TO_DUMP)
+    lines = lines[-LINES_TO_DUMP:]
+    for line in lines:
+        error(line)
 
 class DockerNode(Node):
     def __init__(self, name, image='openswitch/ubuntutest', **kwargs):
@@ -91,6 +142,10 @@ class DockerNode(Node):
             # dump d_out and then abort I guess
             debug(d_out)
             error("Failed to start docker")
+            dumpDockerLogFile()
+            # Clean up any partial/zombie docker instance
+            call(["docker rm -f "+self.container_name], stdout=PIPE,
+                 stderr=PIPE, shell=True)
         # Wait until container actually starts and grab it's PID
         while True:
             pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
