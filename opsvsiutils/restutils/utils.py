@@ -19,9 +19,11 @@ import json
 import httplib
 import random
 import urllib
+import urllib2
 import ssl
 import os
 import time
+import pytest
 import subprocess
 
 from opsvsi.opsvsitest import *
@@ -390,7 +392,19 @@ def validate_keys_complete_object(json_data):
     return True
 
 
+def check_connectivity(ref):
+    try:
+        urllib2.urlopen(ref, timeout=5)
+        return True
+    except urllib2.URLError:
+        return False
+
+
 def rest_sanity_check(switch_ip):
+    login_url = "https://%s/rest/v1/login" % switch_ip
+    connection_established = check_connectivity(login_url)
+    assert connection_established, "REST is not ready to receive requests"
+
     cookie_header = login(switch_ip)
 
     info("Cookie Header" + str(cookie_header))
@@ -398,7 +412,6 @@ def rest_sanity_check(switch_ip):
         exist\n")
     # Check if bridge_normal is ready, loop until ready or timeout finish
     system_path = "/rest/v1/system"
-    bridge_path = "/rest/v1/system/bridges/bridge_normal"
     count = 1
     max_retries = 60  # 1 minute
     while count <= max_retries:
@@ -407,14 +420,9 @@ def rest_sanity_check(switch_ip):
             status_system, response_system = \
                 execute_request(system_path, "GET", None, switch_ip,
                                 xtra_header=cookie_header)
-            status_bridge, response_bridge = \
-                execute_request(bridge_path, "GET", None, switch_ip,
-                                xtra_header=cookie_header)
 
             if status_system is httplib.OK and \
-                    response_system is not None and \
-                    status_bridge is httplib.OK and \
-                    response_bridge is not None:
+               response_system is not None:
                 break
         except:
             pass
