@@ -66,13 +66,13 @@ SSL_CFG_VERIFY_MODE = 'verify_mode'
 SSL_CFG_CHECK_HOSTNAME = 'check_hostname'
 SSL_CFG_CA_CERTS = 'ca_certs'
 
-CERT_PATH = os.path.dirname(os.path.realpath(__file__))
-CERT_FILE = os.path.join(CERT_PATH, 'server.crt')
+CERT_FILE = "/etc/ssl/certs/server.crt"
+CERT_FILE_TMP = "/tmp/server.crt"
 SSL_CONFIG = {
     SSL_CFG_VERSION: ssl.PROTOCOL_SSLv23,
     SSL_CFG_VERIFY_MODE: ssl.CERT_REQUIRED,
     SSL_CFG_CHECK_HOSTNAME: False,
-    SSL_CFG_CA_CERTS: CERT_FILE
+    SSL_CFG_CA_CERTS: CERT_FILE_TMP
 }
 
 
@@ -433,16 +433,15 @@ def get_server_crt(switch):
     info("\n Getting SSL cert from server container %s" % container_id)
     try:
         res = subprocess.check_output(['docker', 'cp', container_id + \
-                                       ':/etc/ssl/certs/server.crt', \
-                                       '/tmp/server.crt'])
+                                       ':' + CERT_FILE, \
+                                       CERT_FILE_TMP])
         time.sleep(1)
     except subprocess.CalledProcessError as e:
         info("Error in subprocess docker cp command\n")
 
 
 def remove_server_crt():
-    crt_file = '/tmp/server.crt'
-    if os.path.exists(crt_file):
+    if os.path.exists(CERT_FILE_TMP):
         info('\n Removing the SSL cert')
-        os.remove(crt_file)
+        os.remove(CERT_FILE_TMP)
     info('\n SSL cert successfuly removed')
