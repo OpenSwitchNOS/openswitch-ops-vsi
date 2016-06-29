@@ -5,6 +5,7 @@ COUNTER=0
 IS_SWITCH_UP=0
 CUR_HW=0
 SWITCHD_PID=0
+SWITCHD_ACTIVE=0
 
 while [ $IS_SWITCH_UP -ne 1 ] && [ $COUNTER -lt $MAXTIME ]
 do
@@ -15,12 +16,18 @@ do
     /bin/ls /var/run/openvswitch/ops-switchd.pid
     SWITCHD_PID="$?"
 
-    if [ $((CUR_HW)) -eq 1 ] && [ "$SWITCHD_PID" = 0 ]; then
+    # Check if ops-switchd has daemonized and is active
+    systemctl is-active switchd.service
+    SWITCHD_ACTIVE=$?
+
+    if [ $((CUR_HW)) -eq 1 ] && [ "$SWITCHD_PID" = 0 ] && [ "$SWITCHD_ACTIVE" = 0 ]; then
         echo "ops-switchd has come up" >> /shared/logs
         IS_SWITCH_UP=1
     fi
     if [ $IS_SWITCH_UP -ne 1 ]; then
         let COUNTER=COUNTER+1
+        echo "COUNTER:" $COUNTER ", CUR_HW:" $CUR_HW  \
+             ", SWITCHD_PID:" $SWITCHD_PID ", SWITCHD_ACTIVE:" $SWITCHD_ACTIVE >> /shared/switchd
         sleep 1
     fi
 done
@@ -30,6 +37,8 @@ if [ $CUR_HW -ne 1 ]; then
     echo "CUR_HW Failure" >> /shared/logs
     echo "CUR_HW column: " $CUR_HW >> /shared/logs
     echo "ops-switchd PID status: " $SWITCHD_PID >> /shared/logs
+    echo "ops-switchd Active status: " $SWITCHD_ACTIVE >> /shared/logs
+    systemctl status switchd -n 10000 -l >> /shared/switchd
     echo "Daemon Table:" >> /shared/logs
     ovs-vsctl list Daemon >> /shared/logs
     echo "Coredump:" >> /shared/logs
@@ -44,6 +53,8 @@ elif [ $IS_SWITCH_UP -ne 1 ]; then
     echo "Switchd Failure" >> /shared/logs
     echo "CUR_HW column: " $CUR_HW >> /shared/logs
     echo "ops-switchd PID status: " $SWITCHD_PID >> /shared/logs
+    echo "ops-switchd Active status: " $SWITCHD_ACTIVE >> /shared/logs
+    systemctl status switchd -n 10000 -l >> /shared/switchd
     echo "Daemon Table:" >> /shared/logs
     ovs-vsctl list Daemon >> /shared/logs
     echo "Coredump:" >> /shared/logs
