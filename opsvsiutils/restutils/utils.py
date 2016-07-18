@@ -31,11 +31,11 @@ PORT_DATA = {
     "configuration": {
         "name": "Port1",
         "interfaces": ["/rest/v1/system/interfaces/1"],
-        "trunks": [413],
+        "vlan_trunks": ["/rest/v1/system/bridges/bridge_normal/vlans/VLAN413"],
         "ip4_address_secondary": ["192.168.1.1"],
         "lacp": "active",
         "bond_mode": "l2-src-dst-hash",
-        "tag": 654,
+        "vlan_tag": ["/rest/v1/system/bridges/bridge_normal/vlans/VLAN654"],
         "vlan_mode": "trunk",
         "ip6_address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "external_ids": {"extid1key": "extid1value"},
@@ -75,6 +75,8 @@ SSL_CONFIG = {
     SSL_CFG_CA_CERTS: CERT_FILE_TMP
 }
 
+DEFAULT_BRIDGE = "bridge_normal"
+bridge_path = "/rest/v1/system/bridges"
 
 def get_container_id(switch):
     container_name = switch.testid + "_" + switch.name
@@ -95,6 +97,19 @@ def create_test_port(ip, cookie_header=None):
     if cookie_header is None:
         cookie_header = login(ip)
     path = "/rest/v1/system/ports"
+
+    vlan_id = 413
+    vlan_name = "VLAN413"
+    vlan_path = "%s/%s/vlans" % (bridge_path, DEFAULT_BRIDGE)
+
+    create_fake_vlan(vlan_path, ip, vlan_name, vlan_id)
+
+    vlan_id = 654
+    vlan_name = "VLAN654"
+    vlan_path = "%s/%s/vlans" % (bridge_path, DEFAULT_BRIDGE)
+
+    create_fake_vlan(vlan_path, ip, vlan_name, vlan_id)
+
     status_code, response_data = execute_request(path,
                                                  "POST",
                                                  json.dumps(PORT_DATA),
@@ -269,6 +284,18 @@ def create_test_ports(ip, num_ports, cookie_header=None):
         cookie_header = login(ip)
 
     path = "/rest/v1/system/ports"
+
+    vlan_id = 413
+    vlan_name = "VLAN413"
+    vlan_path = "%s/%s/vlans" % (bridge_path, DEFAULT_BRIDGE)
+
+    create_fake_vlan(vlan_path, ip, vlan_name, vlan_id)
+
+    vlan_id = 654
+    vlan_name = "VLAN654"
+    vlan_path = "%s/%s/vlans" % (bridge_path, DEFAULT_BRIDGE)
+
+    create_fake_vlan(vlan_path, ip, vlan_name, vlan_id)
 
     data = deepcopy(PORT_DATA)
     for port in range(num_ports):
