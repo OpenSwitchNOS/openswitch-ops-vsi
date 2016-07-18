@@ -28,11 +28,11 @@ FAKE_PORT_DATA = """
     "configuration": {
         "name": "Port-%(index)s",
         "interfaces": ["/rest/v1/system/interfaces/1"],
-        "trunks": [413],
+        "vlan_trunks": ["/rest/v1/system/bridges/bridge_normal/vlans/VLAN413"],
         "ip4_address_secondary": ["192.168.1.%(index)s"],
         "lacp": ["active"],
         "bond_mode": ["l2-src-dst-hash"],
-        "tag": 654,
+        "vlan_tag": ["/rest/v1/system/bridges/bridge_normal/vlans/VLAN654"],
         "vlan_mode": "trunk",
         "ip6_address": ["2001:0db8:85a3:0000:0000:8a2e:0370:%(index)04d"],
         "external_ids": {"extid1key": "extid1value"},
@@ -85,6 +85,21 @@ FAKE_BRIDGE_DATA = """
 }
 """
 
+VLAN_DATA_413 = {
+    "configuration": {
+        "name": "VLAN413",
+        "id": 413,
+    },
+    "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
+}
+
+VLAN_DATA_654 = {
+    "configuration": {
+        "name": "VLAN654",
+        "id": 654,
+    },
+    "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
+}
 
 def create_fake_port(path, switch_ip, port_index, cookie_header=None):
     if cookie_header is None:

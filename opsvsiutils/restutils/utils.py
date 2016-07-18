@@ -31,11 +31,11 @@ PORT_DATA = {
     "configuration": {
         "name": "Port1",
         "interfaces": ["/rest/v1/system/interfaces/1"],
-        "trunks": [413],
+        "vlan_trunks": ["/rest/v1/system/bridges/bridge_normal/vlans/VLAN413"],
         "ip4_address_secondary": ["192.168.1.1"],
         "lacp": "active",
         "bond_mode": "l2-src-dst-hash",
-        "tag": 654,
+        "vlan_tag": ["/rest/v1/system/bridges/bridge_normal/vlans/VLAN654"],
         "vlan_mode": "trunk",
         "ip6_address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "external_ids": {"extid1key": "extid1value"},
@@ -56,10 +56,28 @@ PORT_DATA = {
     "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
 }
 
+VLAN_DATA_413 = {
+    "configuration": {
+        "name": "VLAN413",
+        "id": 413,
+    },
+    "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
+}
+
+VLAN_DATA_654 = {
+    "configuration": {
+        "name": "VLAN654",
+        "id": 654,
+    },
+    "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
+}
+
 LOGIN_URI = '/login'
 ACCOUNT_URI = "/account"
 DEFAULT_USER = 'netop'
 DEFAULT_PASSWORD = 'netop'
+
+DEFAULT_BRIDGE = "bridge_normal"
 
 SSL_CFG_VERSION = 'ssl_version'
 SSL_CFG_VERIFY_MODE = 'verify_mode'
@@ -94,7 +112,16 @@ def get_switch_ip(switch):
 def create_test_port(ip, cookie_header=None):
     if cookie_header is None:
         cookie_header = login(ip)
+
     path = "/rest/v1/system/ports"
+    status_code, response_data = execute_request("/rest/v1/system/bridges/bridge_normal/vlans",
+                                                 "POST",
+                                                 json.dumps(VLAN_DATA_413),
+                                                 ip, xtra_header=cookie_header)
+    status_code, response_data = execute_request("/rest/v1/system/bridges/bridge_normal/vlans",
+                                                 "POST",
+                                                 json.dumps(VLAN_DATA_654),
+                                                 ip, xtra_header=cookie_header)
     status_code, response_data = execute_request(path,
                                                  "POST",
                                                  json.dumps(PORT_DATA),
@@ -269,6 +296,16 @@ def create_test_ports(ip, num_ports, cookie_header=None):
         cookie_header = login(ip)
 
     path = "/rest/v1/system/ports"
+
+    path = "/rest/v1/system/ports"
+    status_code, response_data = execute_request("/rest/v1/system/bridges/bridge_normal/vlans",
+                                                 "POST",
+                                                 json.dumps(VLAN_DATA_413),
+                                                 ip, xtra_header=cookie_header)
+    status_code, response_data = execute_request("/rest/v1/system/bridges/bridge_normal/vlans",
+                                                 "POST",
+                                                 json.dumps(VLAN_DATA_654),
+                                                 ip, xtra_header=cookie_header)
 
     data = deepcopy(PORT_DATA)
     for port in range(num_ports):
