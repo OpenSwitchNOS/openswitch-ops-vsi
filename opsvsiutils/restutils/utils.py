@@ -60,16 +60,14 @@ VLAN_DATA_413 = {
     "configuration": {
         "name": "VLAN413",
         "id": 413,
-    },
-    "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
+    }
 }
 
 VLAN_DATA_654 = {
     "configuration": {
         "name": "VLAN654",
         "id": 654,
-    },
-    "referenced_by": [{"uri": "/rest/v1/system/bridges/bridge_normal"}]
+    }
 }
 
 LOGIN_URI = '/login'
