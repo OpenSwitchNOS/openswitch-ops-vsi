@@ -128,7 +128,7 @@ class VsiOpenSwitch (DockerNode, Switch):
         # The vtysh shell is opened as subprocess in the docker
         # in interactive mode and the -t option in the vtysh adds
         # chr(127) in the prompt which we poll for in the read.
-        cmd = ["docker", "exec", "-i", self.container_name, "/usr/bin/vtysh", "-t", "-vCONSOLE:ERR"]
+        cmd = ["docker", "exec", "-i", self.containerName(), "/usr/bin/vtysh", "-t", "-vCONSOLE:ERR"]
         vtysh = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
         self.cliStdin = vtysh.stdin
         self.cliStdout = vtysh.stdout
@@ -137,7 +137,7 @@ class VsiOpenSwitch (DockerNode, Switch):
         data = self.readCLI(vtysh.stdout.fileno(), 1024)
 
     def shared_logs(self):
-        logs = "Container Name: " + self.container_name
+        logs = "Container Name: " + self.containerName()
 
         docker_ps_cmd = ['docker', 'ps', '-a']
         docker_ps = Popen(docker_ps_cmd, stdout=PIPE)
@@ -286,7 +286,7 @@ class OpsVsiTest(object):
                         self.net.stop()
                         pytest.fail("Switchd failed to start up")
                     else:
-                        debug("Switch %s booted up successfully" % switch.container_name)
+                        debug("Switch %s booted up successfully" % switch.containerName())
             self.net.start()
             for switch in self.net.switches:
                 if isinstance(switch, VsiOpenSwitch) and switch.tuntap_failed:

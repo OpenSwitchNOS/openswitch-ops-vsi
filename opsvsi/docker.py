@@ -7,6 +7,7 @@ from mininet.cli import *
 from mininet.log import *
 from mininet.util import *
 from subprocess import *
+import collections
 import select
 import os
 
@@ -14,6 +15,8 @@ import os
 # the docker image to execute # its own startup
 # scripts/default CMD as defined in its corresponding Dockerfile.
 DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
+
+Container = collections.namedtuple('Container', ('testid', 'device'))
 
 # This function dumps the last "LINES_TO_DUMP" lines from the docker daemon logs
 # Docker daemon logs can be gathered by different means depending on the host OS
@@ -25,7 +28,7 @@ DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
 #    Fedora - journalctl -u docker.service
 #    Red Hat Enterprise Linux Server - /var/log/messages | grep docker
 #    OpenSuSE - journalctl -u docker.service
-# For now we'll cater to Ubuntu & CentOS cases alone.
+# For now we support the file based logs.
 
 def dumpDockerLogFile():
     import os, platform
@@ -34,18 +37,14 @@ def dumpDockerLogFile():
     DOCKER_LOG_FILE = ""
     DOCKER_FILTER = ""
 
-    platform_system = str(platform.system()).lower()
-    platform_version = str(platform.version()).lower()
-
-    if "linux" in platform_system:
-        if "ubuntu" in platform_version:
-            DOCKER_LOG_FILE = "/var/log/upstart/docker.log"
-        elif "centos" in platform_version:
-            DOCKER_LOG_FILE = "/var/log/daemon.log"
-            DOCKER_FILTER = "docker"
-        else:
-            error("dumpDockerLogFile: Unknown platform")
-            return
+    if os.path.isfile("/var/log/upstart/docker.log"):
+        DOCKER_LOG_FILE = "/var/log/upstart/docker.log"
+    elif os.path.isfile("/var/log/daemon.log"):
+        DOCKER_LOG_FILE = "/var/log/daemon.log"
+        DOCKER_FILTER = "docker"
+    elif os.path.isfile("/var/log/messages"):
+        DOCKER_LOG_FILE = "/var/log/messages"
+        DOCKER_FILTER = "docker"
     else:
         error("dumpDockerLogFile: Unknown platform")
         return
@@ -72,7 +71,11 @@ class DockerNode(Node):
         self.image = image
 
         self.testid = kwargs.pop('testid', None)
-        self.container_name = self.testid + '_' + name
+        self.container = Container(self.testid, name)
+        # TODO: To be removed.
+        # This needs to remain for a short while until this change is in and all
+        # call sites have been switched over to use containerName()
+        self.container_name = self.containerName()
 
         self.testdir = kwargs.pop('testdir', None)
         self.nodedir = self.testdir + '/' + name
@@ -88,7 +91,7 @@ class DockerNode(Node):
 
         # Just in case test isn't running in a container,
         # clean up any mess left by previous run
-        call(["docker rm -f " + self.container_name], stdout=PIPE,
+        call(["docker rm -f " + self.containerName()], stdout=PIPE,
              stderr=PIPE, shell=True)
 
         mountParams = []
@@ -118,7 +121,8 @@ class DockerNode(Node):
                    "-v", "/lib/modules:/lib/modules",
                    "-v", "/sys/fs/cgroup:/sys/fs/cgroup"] + \
                    mountParams + \
-                   ["-h", self.container_name, "--name=" + self.container_name,
+                   ["-h", self.containerName(),
+                    "--name=" + self.containerName(),
                     dockerOptions, self.image]
         else:
             cmd = ["docker", "run", "--privileged",
@@ -128,7 +132,8 @@ class DockerNode(Node):
                    "-v", "/lib/modules:/lib/modules",
                    "-v", env_cov_data_dir + ":" + env_cov_data_dir] +\
                    mountParams + \
-                   ["-h", self.container_name, "--name=" + self.container_name,
+                   ["-h", self.containerName(),
+                    "--name=" + self.containerName(),
                     dockerOptions, self.image]
 
         if self.init_cmd != DOCKER_DEFAULT_CMD:
@@ -140,16 +145,18 @@ class DockerNode(Node):
         dPid.wait();
         if dPid.returncode != 0:
             # dump d_out and then abort I guess
-            debug(d_out)
-            error("Failed to start docker")
+            error("Failed to start docker, cmd was: '%s'", cmd)
+            error(d_out)
             dumpDockerLogFile()
             # Clean up any partial/zombie docker instance
-            call(["docker rm -f "+self.container_name], stdout=PIPE,
+            call(["docker rm -f "+self.containerName()], stdout=PIPE,
                  stderr=PIPE, shell=True)
+            raise Exception("Failed to start docker: %s", d_out)
+
         # Wait until container actually starts and grab it's PID
         while True:
             pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
-                       self.container_name]
+                       self.containerName()]
             pidp = Popen(pid_cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                          close_fds=False)
             ps_out = pidp.stdout.readlines()
@@ -159,7 +166,7 @@ class DockerNode(Node):
                 if pid != 0:
                     self.docker_pid = pid
                     debug("Docker container started.\n")
-                    debug(" Name=" + self.container_name)
+                    debug(" Name=" + self.containerName())
                     debug(" PID=", self.docker_pid)
                     break
 
@@ -167,12 +174,12 @@ class DockerNode(Node):
 
     def popen(self, *args, **kwargs):
         return Node.popen(self, *args, mncmd=['docker', 'exec',
-                          self.container_name],
+                          self.containerName()],
                           **kwargs)
 
     def terminate(self):
         if self.shell:
-            call(["docker rm -f "+self.container_name], stdout=PIPE,
+            call(["docker rm -f "+self.containerName()], stdout=PIPE,
                  stderr=PIPE, shell=True)
             self.cleanup()
 
@@ -182,7 +189,8 @@ class DockerNode(Node):
             return
 
         cmd = ["mnexec", "-cd", "script", "-c",
-               ' '.join(["docker", "exec", "-ti", self.container_name,
+               ' '.join(["docker", "exec", "-ti",
+                         self.containerName(),
                          "/bin/bash", "--rcfile",
                          "/shared/" + self.bashrc_file_name]),
                "--timing=" + self.nodedir + "/transcript.timing",
@@ -213,6 +221,20 @@ class DockerNode(Node):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
+    def containerName(self):
+        # NOTE: Do *NOT* depend on the output format of this function.
+        # If you are using things like regex to parse container names and
+        # trying to extract information YOU WILL BREAK.
+        # Docker is known to change the format of what's allowed in hostnames
+        # so this might change without warning.
+        # TODO: Change seperator here to be '-'. '_' is not allowed in
+        # hostnames (RFC2782).
+        return self.container.testid + '_' + self.container.device
+
+    def containerId(self):
+        return subprocess.check_output(["docker", "ps", "-a",
+                                        "-q", "-f", "name=" +
+                                        self.containerName()]).strip()
 
 class DockerHost (DockerNode):
     pass
