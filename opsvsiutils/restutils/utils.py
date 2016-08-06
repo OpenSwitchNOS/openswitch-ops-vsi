@@ -24,6 +24,7 @@ import os
 import time
 import subprocess
 
+from opsvsi.docker import *
 from opsvsi.opsvsitest import *
 from copy import deepcopy
 
@@ -89,14 +90,6 @@ SSL_CONFIG = {
     SSL_CFG_CHECK_HOSTNAME: False,
     SSL_CFG_CA_CERTS: CERT_FILE_TMP
 }
-
-
-def get_container_id(switch):
-    container_name = switch.testid + "_" + switch.name
-    container_id = subprocess.check_output(["docker", "ps", "-a",
-                                            "-q", "-f", "name=" +
-                                            container_name]).strip()
-    return container_id
 
 
 def get_switch_ip(switch):
@@ -463,7 +456,7 @@ def rest_sanity_check(switch_ip):
 
 
 def get_server_crt(switch):
-    container_id = get_container_id(switch)
+    container_id = switch.containerId()
     info("\n Getting SSL cert from server container %s" % container_id)
     try:
         res = subprocess.check_output(['docker', 'cp', container_id + \
