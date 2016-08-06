@@ -25,7 +25,7 @@ DOCKER_DEFAULT_CMD = "DOCKER_DEFAULT_CMD"
 #    Fedora - journalctl -u docker.service
 #    Red Hat Enterprise Linux Server - /var/log/messages | grep docker
 #    OpenSuSE - journalctl -u docker.service
-# For now we'll cater to Ubuntu & CentOS cases alone.
+# For now we support the file based logs.
 
 def dumpDockerLogFile():
     import os, platform
@@ -34,18 +34,14 @@ def dumpDockerLogFile():
     DOCKER_LOG_FILE = ""
     DOCKER_FILTER = ""
 
-    platform_system = str(platform.system()).lower()
-    platform_version = str(platform.version()).lower()
-
-    if "linux" in platform_system:
-        if "ubuntu" in platform_version:
-            DOCKER_LOG_FILE = "/var/log/upstart/docker.log"
-        elif "centos" in platform_version:
-            DOCKER_LOG_FILE = "/var/log/daemon.log"
-            DOCKER_FILTER = "docker"
-        else:
-            error("dumpDockerLogFile: Unknown platform")
-            return
+    if os.path.isfile("/var/log/upstart/docker.log"):
+        DOCKER_LOG_FILE = "/var/log/upstart/docker.log"
+    elif os.path.isfile("/var/log/daemon.log"):
+        DOCKER_LOG_FILE = "/var/log/daemon.log"
+        DOCKER_FILTER = "docker"
+    elif os.path.isfile("/var/log/messages"):
+        DOCKER_LOG_FILE = "/var/log/messages"
+        DOCKER_FILTER = "docker"
     else:
         error("dumpDockerLogFile: Unknown platform")
         return
@@ -72,7 +68,7 @@ class DockerNode(Node):
         self.image = image
 
         self.testid = kwargs.pop('testid', None)
-        self.container_name = self.testid + '_' + name
+        self.container_name = self.testid + '-' + name
 
         self.testdir = kwargs.pop('testdir', None)
         self.nodedir = self.testdir + '/' + name
@@ -141,11 +137,13 @@ class DockerNode(Node):
         if dPid.returncode != 0:
             # dump d_out and then abort I guess
             debug(d_out)
-            error("Failed to start docker")
+            error("Failed to start docker, cmd was: '%s'", cmd)
             dumpDockerLogFile()
             # Clean up any partial/zombie docker instance
             call(["docker rm -f "+self.container_name], stdout=PIPE,
                  stderr=PIPE, shell=True)
+            raise Exception("Failed to start docker")
+
         # Wait until container actually starts and grab it's PID
         while True:
             pid_cmd = ["docker", "inspect", "--format='{{ .State.Pid }}'",
