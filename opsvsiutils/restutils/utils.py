@@ -467,8 +467,8 @@ def get_server_crt(switch):
     count = 1
     container_id = get_container_id(switch)
     while count <= max_ret:
-        info("\n Getting SSL cert from server container %s, try %d" % (container_id,
-             count))
+        info("\n Getting SSL cert from server container %s, try %d " % (container_id,
+             count))../openswitch_rel/src/ops-vsi/opsvsiutils/restutils/utils.py
         try:
             res = subprocess.check_output(['docker', 'cp', container_id + \
                                            ':' + CERT_FILE, \
@@ -477,11 +477,11 @@ def get_server_crt(switch):
             if os.path.exists(CERT_FILE_TMP):
                 info("SSL cert successfully fetched")
                 break
-    except subprocess.CalledProcessError as e:
-        info("Error in subprocess docker cp command\n")
-        pass
-    count += 1
-    time.sleep(1)
+        except subprocess.CalledProcessError as e:
+            info("Error in subprocess docker cp command\n")
+            pass
+        count += 1
+        time.sleep(1)
 
 
 def remove_server_crt():
