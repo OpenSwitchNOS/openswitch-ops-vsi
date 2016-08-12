@@ -463,15 +463,25 @@ def rest_sanity_check(switch_ip):
 
 
 def get_server_crt(switch):
+    max_ret = 15
+    count = 1
     container_id = get_container_id(switch)
-    info("\n Getting SSL cert from server container %s" % container_id)
-    try:
-        res = subprocess.check_output(['docker', 'cp', container_id + \
-                                       ':' + CERT_FILE, \
-                                       CERT_FILE_TMP])
-        time.sleep(1)
+    while count <= max_ret:
+        info("\n Getting SSL cert from server container %s, try %d" % (container_id,
+             count))
+        try:
+            res = subprocess.check_output(['docker', 'cp', container_id + \
+                                           ':' + CERT_FILE, \
+                                           CERT_FILE_TMP])
+            time.sleep(1)
+            if os.path.exists(CERT_FILE_TMP):
+                info("SSL cert successfully fetched")
+                break
     except subprocess.CalledProcessError as e:
         info("Error in subprocess docker cp command\n")
+        pass
+    count += 1
+    time.sleep(1)
 
 
 def remove_server_crt():
