@@ -477,11 +477,11 @@ def get_server_crt(switch):
             if os.path.exists(CERT_FILE_TMP):
                 info("SSL cert successfully fetched")
                 break
-    except subprocess.CalledProcessError as e:
-        info("Error in subprocess docker cp command\n")
-        pass
-    count += 1
-    time.sleep(1)
+        except subprocess.CalledProcessError as e:
+            info("Error in subprocess docker cp command\n")
+            pass
+        count += 1
+        time.sleep(1)
 
 
 def remove_server_crt():
