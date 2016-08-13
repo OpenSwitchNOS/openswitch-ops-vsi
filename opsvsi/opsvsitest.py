@@ -124,6 +124,40 @@ class VsiOpenSwitch (DockerNode, Switch):
                 self.cmd(NS_EXEC + "echo port_add " + intf + " " + str(int(intf) - 1) + " | " +
                          NS_EXEC + "/usr/bin/bm_tools/runtime_CLI.py --json /usr/share/ovs_p4_plugin/switch_bmv2.json --thrift-port 10001")
 
+        # Checking restd status
+        output = ''
+        try:
+            output = self.cmd(
+                'systemctl status restd'
+            )
+        except:
+            pass
+        if 'Active: active' not in output:
+            try:
+                print('Starting restd daemon...')
+                self.cmd('systemctl start restd')
+                print('Checking restd service started...')
+                for i in range(0, config_timeout):
+                    output = ''
+                    output = self.cmd(
+                        'systemctl status restd'
+                    )
+                    if 'Active: active' not in output:
+                        sleep(0.1)
+                    else:
+                        break
+                else:
+                    raise Exception("Failed to start restd service")
+            except:
+                raise Exception(
+                    'Failed to start restd {}'.format(output)
+                )
+            except Exception as error:
+                raise Exception (
+                    error
+                )
+
+
     def startCLI(self):
         # The vtysh shell is opened as subprocess in the docker
         # in interactive mode and the -t option in the vtysh adds
