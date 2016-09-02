@@ -60,14 +60,14 @@ VLAN_DATA_413 = {
     "configuration": {
         "name": "VLAN413",
         "id": 413,
-    },
+    }
 }
 
 VLAN_DATA_654 = {
     "configuration": {
         "name": "VLAN654",
         "id": 654,
-    },
+    }
 }
 
 LOGIN_URI = '/login'
@@ -304,6 +304,15 @@ def create_test_ports(ip, num_ports, cookie_header=None):
                                                  json.dumps(VLAN_DATA_654),
                                                  ip, xtra_header=cookie_header)
 
+    status_code, response_data = execute_request("/rest/v1/system/bridges/bridge_normal/vlans",
+                                                 "POST",
+                                                 json.dumps(VLAN_DATA_413),
+                                                 ip, xtra_header=cookie_header)
+    status_code, response_data = execute_request("/rest/v1/system/bridges/bridge_normal/vlans",
+                                                 "POST",
+                                                 json.dumps(VLAN_DATA_654),
+                                                 ip, xtra_header=cookie_header)
+
     data = deepcopy(PORT_DATA)
     for port in range(num_ports):
         data["configuration"]["name"] = "Port%s" % port
@@ -463,15 +472,25 @@ def rest_sanity_check(switch_ip):
 
 
 def get_server_crt(switch):
+    max_ret = 15
+    count = 1
     container_id = get_container_id(switch)
-    info("\n Getting SSL cert from server container %s" % container_id)
-    try:
-        res = subprocess.check_output(['docker', 'cp', container_id + \
-                                       ':' + CERT_FILE, \
-                                       CERT_FILE_TMP])
+    while count <= max_ret:
+        info("\n Getting SSL cert from server container %s, try %d" % (container_id,
+             count))
+        try:
+            res = subprocess.check_output(['docker', 'cp', container_id + \
+                                           ':' + CERT_FILE, \
+                                           CERT_FILE_TMP])
+            time.sleep(1)
+            if os.path.exists(CERT_FILE_TMP):
+                info("SSL cert successfully fetched")
+                break
+        except subprocess.CalledProcessError as e:
+            info("Error in subprocess docker cp command\n")
+            pass
+        count += 1
         time.sleep(1)
-    except subprocess.CalledProcessError as e:
-        info("Error in subprocess docker cp command\n")
 
 
 def remove_server_crt():
